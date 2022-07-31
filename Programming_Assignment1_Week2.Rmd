@@ -1,0 +1,334 @@
+---
+title: "Programming Assignment 1"
+output:
+  word_document: default
+  html_document: default
+  html_notebook: default
+---
+
+
+```{r}
+library("knitr")
+rm(list = ls())
+```
+
+Write R Code based on the below instructions and execute them
+
+########################### RELATIONAL OPERATORS####################
+
+1) a) Check if logical TRUE is equal to FALSE 
+   b) Check if 2+10 is not equal to 3*4
+   c) Check if (1+8) is greater than or equal to (3*3)
+   d) Check if (10/5) is greater 0
+   e) Check if Hello is equal to hello
+   f) Compare logical False to 0 and see if they are equal
+   g) On what subjects did first student score greater than 5
+   h) On what subjects did second student score less or equal to 5
+   i) On what subjects did second student score more than first           student 
+   j) When is score greater than or equal to 4 
+   
+```{r}
+
+# 1) a) Insert R Code below
+TRUE == FALSE
+
+# 1) b) Insert R Code below
+2+10 != 3*4
+
+# 1) c) Insert R Code below
+(1+8) > (3*3)
+
+# 1) d) Insert R Code below
+(10/5) >0
+
+# 1) e) Insert R Code below
+"Hello" == "hello"
+
+# 1) f) Insert R Code below
+FALSE == 0
+
+# Vectors of students score in three subjects 
+first_student_score <- c(8,4,10)
+second_student_score <- c(2,9,12)
+
+# 1) g) Insert R Code below
+first_student_score >5       
+
+# 1) h) Insert R Code below
+second_student_score <= 5
+
+# 1) i) Insert R Code below
+second_student_score > first_student_score
+
+# Creating Matrix of scores for both students 
+scores <- matrix(c(first_student_score,second_student_score),nrow=2, byrow=TRUE)
+
+
+# 1) j) Insert R Code below
+scores >= 4
+
+```
+
+########################### LOGICAL OPERATORS ####################
+
+2) a)  Is first under 5 or above 15
+   b)  Is first between 10(exclusive) and 20(inclusive) 
+   c) What would the below expression return:
+      l <- 2
+      m <- 3
+      !(!(!(l>1 & l<4)))
+   
+```{r}
+
+first_student_score <- c(18,4,10)
+first <- head(first_student_score,1)
+first
+
+# 2) a) Insert R Code below
+first < 5 | first >5
+
+# 2) b) Insert R Code below
+first > 10 & first <= 20
+
+# 2) c) Insert R Code below
+l <- 2
+m <- 3
+!(!(!(l>1 & l<4)))
+      
+
+```
+
+  
+ ########################### CONDITIONAL OPERATORS ####################
+
+3) a) Code an if statement to check if your score is equal to 100 that prints "You scored 100 in your exam"
+
+b) Code an if else statement that would print "Invalid Score" if the score
+is above 100
+
+```{r}
+
+score <- 100
+
+# 3) a) Fill in the appropriate R Code below
+
+if(score == 100 ){
+  #Add the appropriate code below
+  print("you scored 100 in your exam")
+}
+
+# 3) b) Fill in the appropriate R Code below
+
+if(score < 100 ){
+  print("Your score is below 100")
+}else{
+  #Add the appropriate code below
+  print("Invalid Score")
+}
+
+
+```
+
+########################### WHILE LOOP ###################################
+
+4) a) Assign value 15 to variable named multiple. Create a while loop with the condition of checking if the variable multiple is less than or equal to 20. Increment the variable multiple within the while loop by 1. Print the value of multiple before and after incrementing its value by 1.
+
+b) Break the while loop is the score exceeds 85
+
+```{r}
+# 4) a) Fill in the appropriate R Code below
+multiple <- 15
+while (multiple <= 20) {
+  print(paste("multiple is equal to", multiple))
+  multiple = multiple + 1
+  print(multiple)
+  
+}
+
+# 4) b)
+ math_score <- 90
+ while (math_score > 36){
+   print(paste("Your math score is", math_score))
+   
+   
+   if(math_score>85){
+   #Break the loop when the score exceeds 85  
+    break 
+   }
+   else{
+     print("Your score is still below the threshold for the loop to break")
+   }
+   
+ }
+   
+
+```
+
+
+############################ FOR LOOP ###################################
+
+5) a) Create a vector having the name of six states and assign it to variable named states. Create a for loop without using looping index to print each values in the states vector
+b) Create the same for loop whatever you had done in 5(a) but you need to use looping index
+
+```{r}
+# 5) a) Fill in the appropriate R Code below
+states <- c("Missouri", "Ohio", "Kentucky", "Texas", "NewYork")
+for(state in states){
+  print(state)
+}
+
+# 5) b) Fill in the appropriate R Code below
+
+for(i in 1 : length(states)){
+  print(states[i])
+}
+
+
+```
+
+
+5) c) You have a vector for cost already defined for you. Extend the for loop with two new, separate if tests as follows:
+  (i) If the vector's elements value exceeds 20, print out "The cost is very high!" and have R abandon the for loop(break)
+   (ii) If the value is lower than 5, print out, print out "The cost is low!" and use Next to forward to next iteration
+   
+```{r}
+# The cost vector has already been defined for you
+cost <- c(20, 30, 10,67,5,3,50,2, 250)
+
+for (co in cost){
+  if (co > 10) {
+    print("Cost is high")
+  } else {
+    print("Reasonable cost")
+  }
+}
+  
+  # 5 c) (i) Add if statement with break
+  
+  for (co in cost){
+    if(co > 20){
+      print("The cost is very high!")
+    }
+  break
+  }
+  
+
+  # 5 c) (ii) Add if statement with next
+  
+  for (co in cost){
+    if (co < 5){
+      print("The cost is low!")
+    next
+    }
+  }
+  print(co)
+
+
+```
+   
+ 
+############################ FUNCTIONS #####################################
+
+6) a) Consult the documentation on the median() function
+   b) Inspect the arguments of the median() function
+   
+```{r}
+
+# 6) a) Fill in the appropriate R Code below
+help(median)
+
+
+# 6) b) Fill in the appropriate R Code below
+args(median)
+
+
+```
+
+6) c) Calculate the average score of students from stat class
+
+```{r}
+scorestat <- c(90,100,60,80,100) 
+
+
+# 6) c) Fill in the appropriate R Code below
+mean(scorestat)
+```
+
+6) d) Create your own function mul1 where you take two values a and b as input. Multiple them and then return their result.
+   e) Create your own function double1 where you take two input values s and t as input. The default value of argument t will 2. The function will multiply the two input values. Call the function double1(3).
+   
+```{r}
+# 6) d) Fill in the appropriate R Code below
+mul1 <- function(a, b){
+  a * b
+}
+mul1(3, 6)
+
+# 6) e) Fill in the appropriate R Code below
+double1 <- function(s, t=2){
+  s * t
+ 
+}
+double1(3)
+```
+
+
+############################ apply family###################################
+
+7 a) Create a list having multiple classes of elements and apply lapply function for the created list to display the class of elements of the list 
+  
+```{r}
+# 7) a) Fill in the appropriate R Code below
+list1 <- list("apple", 1, 2.5, TRUE, 1L)
+lapply(list1, class)
+```
+
+7) b) Create a vector of student names. Apply sapply function to get the number of characters in each of the student names.
+
+```{r}
+# 7) b) Fill in the appropriate R Code below
+student_names <- c("Sravani", "Pavan", "Jessica", " Rachel", "Harvey")
+sapply(student_names, nchar)
+```
+
+############################ UTILITIES######################################
+
+8) a) Create any vector and use the sum(), mean(), abs(), round() functions on that vector
+
+```{r}
+# 8) a) Fill in the appropriate R Code below
+vec1 <- c(1.1, 56, 100, 7.99, 42, 5)
+sum(vec1)
+mean(vec1)
+abs(vec1)
+round(vec1)
+```
+
+
+8) b) Use seq() function and it should generate values starting from 10 to 18 and the values should get incremented by 3
+
+```{r}
+# 8) b) Fill in the appropriate R Code below
+seq(10, 18, by = 3)
+```
+
+8c) Create a vector with 3 values and repeat those values 5 times using rep() function and print the output vector
+
+```{r}
+# 8) c) Fill in the appropriate R Code below
+number <- c(67, 89, 42)
+rep(number, times = 5)
+
+```
+
+8) d) Create a vector of strings and display the difference between grepl(),grep(),sub(), and gsub() functions
+
+```{r}
+# 8) d) Fill in the appropriate R Code below
+cars <- c("BMW", "Nissan", "Toyota", "Volvo", "Honda")
+grepl(pattern="a",x=cars)
+grep(pattern="a",x=cars)
+sub(pattern="o",replacement="a",x=cars) 
+gsub(pattern="n",replacement="i",x=cars) 
+```
+
