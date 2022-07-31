@@ -1,0 +1,358 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Project name : chi_squared test on the ease of vote 
+
+# Project purpose : performing the chi-squared test and cramer's V test for the significant variables 
+
+# Code author name : Mahankali Sravani
+
+# Date last edited : 3/25/2022
+
+# Location of data used : St.Louis, MO
+
+##############################################################################################################
+
+## installing the lsr package 
+
+```{r}
+install.packages("lsr", dependencies = TRUE)
+```
+
+## loading the tidyverse, haven, descr, lsr packages
+
+```{r}
+packages <- c('tidyverse','haven','descr','lsr')
+```
+
+```{r}
+purrr::walk(packages,library,character.only=T)
+```
+
+## reading the voting opinions file
+
+```{r}
+library(readr)
+vote <- read_sav("pew_apr_19-23_2017_weekly_ch5.sav")
+```
+
+1) FIRST QUESTION
+
+## Cleaning the variables 
+
+```{r}
+vote.cleaned <- vote%>%
+  
+  ## selecting the needed variables from the dataset
+  
+  select(pew1a, pew1b, race, sex, mstatus, ownhome, employ, polparty)%>%
+  
+  ## Removing the long labels
+  
+  zap_labels()%>%
+  mutate(pew1a = recode_factor(.x = pew1a,
+                              `1` = 'Register to vote',
+                              `2` = 'Make easy to vote',
+                              `5` = NA_character_,
+                              `9` = NA_character_))%>%
+  
+  ## renaming the pew1a as easy.vote
+  
+  rename(easy.vote = pew1a)%>%
+  mutate(pew1b = recode_factor(.x = pew1b,
+                    `1` = 'Require to vote',
+                    `2` = 'Choose to vote',
+                    `5` = NA_character_,
+                    `9` = NA_character_)) %>%
+  
+  ## renaming the pew1b as require.vote
+  
+  rename(require.vote = pew1b)%>%
+  mutate(race = recode_factor(.x = race,
+                              `1` = 'White non-Hispanic',
+                              `2` = 'Black non-Hispanic',
+                              `3` = 'Hispanic',
+                              `4` = 'Hispanic',
+                              `5` = 'Hispanic',
+                              `6` = 'Other',
+                              `7` = 'Other',
+                              `8` = 'Other',
+                              `9` = 'Other',
+                              `10` = 'Other',
+                              `99` = NA_character_)) %>%
+  mutate(sex = recode_factor(.x = sex,
+                    `1` = 'Male',
+                    `2` = 'Female')) %>%
+  mutate(ownhome = recode_factor(.x = ownhome,
+                        `1` = 'Owned',
+                        `2` = 'Rented',
+                        `8` = NA_character_,
+                        `9` = NA_character_))
+```
+
+```{r}
+summary(vote.cleaned)
+```
+-------------------------------------------------------------------------------------------------------------------
+
+2) SECOND QUESTION
+
+```{r}
+vote.cleaned <- vote.cleaned%>%
+  mutate(mstatus = recode_factor(.x = mstatus,
+                                 `1` = 'Single, that is never married', 
+                                 `2` = 'Single, living with a partner', 
+                                 `3` = 'Married', 
+                                 `4` = 'Separated', 
+                                 `5` = 'Widowed', 
+                                 `6` = 'Divorced', 
+                                 `9` = NA_character_ ))%>%
+  mutate(employ = recode_factor(.x = employ,
+                                `1` = 'Employed full-time', 
+                                `2` = 'Employed part-time', 
+                                `3` = 'Not employed', 
+                                `4` = 'Not employed',
+                                `5` = 'Not employed', 
+                                `6` = 'Not employed', 
+                                `7` = 'Not employed',  
+                                `8` = 'Not employed', 
+                                `9` = NA_character_ ))%>%
+  mutate(polparty = recode_factor(.x = polparty,
+                                  `1` = 'A Republican', 
+                                  `2` = 'A Democrat', 
+                                  `3` = 'An Independent', 
+                                  `0` = NA_character_, 
+                                  `8` = NA_character_, 
+                                  `9` = NA_character_ ))
+
+```
+
+```{r}
+summary(vote.cleaned)
+```
+
+-------------------------------------------------------------------------------------------------------------------
+
+3) THIRD QUESTION
+
+## Using descriptive statistics to examine the relationship between two categorical variable
+
+```{r}
+vote.cleaned %>%
+      drop_na(easy.vote) %>%
+      drop_na(sex) %>%
+      group_by(easy.vote, sex) %>%
+      summarize(freq.n = n()) %>%
+      spread(key = sex, value = freq.n)
+```
+
+```{r}
+## tabulating the frequencies
+
+table(vote.cleaned$easy.vote, vote.cleaned$sex)
+```
+```{r}
+## converting the frequencies to percentages
+
+prop.table(x = table(Voting.ease = vote.cleaned$easy.vote,
+                     sex = vote.cleaned$sex))
+```
+```{r}
+vote.cleaned %>%
+      drop_na(easy.vote) %>%
+      drop_na(mstatus) %>%
+      group_by(easy.vote, mstatus) %>%
+      summarize(freq.n = n()) %>%
+      spread(key = mstatus, value = freq.n)
+```
+
+```{r}
+## tabulating the frequencies
+
+table(vote.cleaned$easy.vote, vote.cleaned$mstatus)
+```
+```{r}
+## converting the frequencies to percentages
+
+prop.table(x = table(Voting.ease = vote.cleaned$easy.vote,
+                     mstatus = vote.cleaned$mstatus))
+```
+```{r}
+vote.cleaned %>%
+      drop_na(easy.vote) %>%
+      drop_na(employ) %>%
+      group_by(easy.vote, employ) %>%
+      summarize(freq.n = n()) %>%
+      spread(key = employ, value = freq.n)
+```
+```{r}
+## tabulating the frequencies
+
+table(vote.cleaned$easy.vote, vote.cleaned$employ)
+```
+```{r}
+## converting the frequencies to percentages
+
+prop.table(x = table(Voting.ease = vote.cleaned$easy.vote,
+                     employ = vote.cleaned$employ))
+```
+```{r}
+vote.cleaned %>%
+      drop_na(easy.vote) %>%
+      drop_na(polparty) %>%
+      group_by(easy.vote, polparty) %>%
+      summarize(freq.n = n()) %>%
+      spread(key = polparty, value = freq.n)
+```
+```{r}
+## tabulating the frequencies
+
+table(vote.cleaned$easy.vote, vote.cleaned$polparty)
+```
+
+```{r}
+## converting the frequencies to percentages
+
+prop.table(x = table(Voting.ease = vote.cleaned$easy.vote,
+                     polparty = vote.cleaned$polparty))
+```
+
+-------------------------------------------------------------------------------------------------------------------
+
+4) FOURTH QUESTION
+
+## writing the null and altenate hypotheses, and performing the chi-squared test for every variable
+
+#### sex variable
+
+H0: The sex and the ease of vote are related to each other
+H1: The sex and the ease of vote are not related to each other
+
+```{r}
+chisq.test(x = vote.cleaned$easy.vote, y = vote.cleaned$sex, correct = FALSE)
+```
+* Since, the p-value is greater than 0.05(p = 0.5912), the sex and the ease of vote are not related to each other.   So,we reject the null hypothesis and accept the alternate hypothesis
+
+#### marital status
+
+H0: The marital status and the ease of vote are related to each other
+H1: The marital status and the ease of vote are not related to each other
+
+```{r}
+chisq.test(x = vote.cleaned$easy.vote, y = vote.cleaned$mstatus)
+```
+* Since, the p-value is less than 0.05(p = 0.01336), the marital status and the ease of vote are  related to each    other. So,we accept the null hypothesis
+
+*** We used the chi-squared test to test the null hypothesis that there was relationship between opinions on           voter registration and marital status group. We accepted the null hypothesis and concluded that there was a        statistically significant association between views on voter registration and marital status [χ2(3) = 0.14381;     p < .05].
+
+#### employment variable
+
+H0: The employment and the ease of vote are related to each other
+H1: The employment and the ease of vote are not related to each other
+
+```{r}
+chisq.test(x = vote.cleaned$easy.vote, y = vote.cleaned$employ)
+```
+* Since, the p-value is greater than 0.05(p = 0.6816), the employment and the ease of vote are not related to each   other. So,we reject the null hypothesis and accept the alternate hypothesis
+
+#### political party variable
+
+H0: The political party and the ease of vote are related to each other
+H1: The political party and the ease of vote are not related to each other
+
+```{r}
+chisq.test(x = vote.cleaned$easy.vote, y = vote.cleaned$polparty)
+```
+* Since, the p-value is less than 0.05(p = 0.00000000000000022), the marital status and the ease of vote are         related to each other. So,we accept the null hypothesis
+
+*** We used the chi-squared test to test the null hypothesis that there was relationship between opinions on voter     registration and political party group. We accepted the null hypothesis and concluded that there was a             statistically significant association between views on voter registration and political party [χ2(3) = 123.35;     p< .05].
+
+with the chi-squared test done on all the variables, it is observed that the marital status and political party    are significant variables. So, we will proceed for further analysis for them.
+-----------------------------------------------------------------------------------------------------------------
+
+5) FIFTH QUESTION
+
+## calculating the standard residuals for the significant variables
+
+#### marital status variable
+
+```{r}
+CrossTable(x = vote.cleaned$easy.vote,
+           y = vote.cleaned$mstatus,
+           expected = TRUE, 
+           prop.c = FALSE,  
+           prop.t = FALSE, 
+           prop.chisq = FALSE, 
+           chisq = TRUE, 
+           sresid = TRUE) 
+```
+
+* The standard residual for the single but never married group is -1.73 for register to vote category and 1.448 for   easy to vote category
+* The standard residual for the single but living with a partner group is -0.254 for register to vote category and   0.211 for easy to vote category
+* The standard residual for the  married group is 1.356 for register to vote category and -1.126 for   easy to vote   category
+* The standard residual for the separated group is -0.757 for register to vote category and 0.628 for   easy to      vote category
+* The standard residual for the widowed group is 1.399 for register to vote category and -1.161 for   easy to vote   category
+* The standard residual for the divorced group is -1.020 for register to vote category and 0.847 for   easy to vote   category
+
+*** The standard residuals of all the groups are in between 1.96 to -1.96 for both the categories(register to vote     and easy to vote), So the observed values are same as expected values. That is all the people selected the         categories as expected
+
+#### political party variable
+
+```{r}
+CrossTable(x = vote.cleaned$easy.vote,
+           y = vote.cleaned$polparty,
+           expected = TRUE, 
+           prop.c = FALSE,  
+           prop.t = FALSE, 
+           prop.chisq = FALSE, 
+           chisq = TRUE, 
+           sresid = TRUE) 
+```
+* The standard residual for a republican party for register to vote category is 5.915 indicating that more number    of people in a republican party selected the category than expected and easy to vote category is  -4.877           indicating that fewer than expected people selected the category
+* The standard residual for a democrat for register to vote category is -6.148 indicating that fewer number of       people in a republican party selected the category than expected and easy to vote category is  5.069               indicating that higher than expected people selected the category
+* The standard residuals for the independent candidates are in between 1.96 to -1.96, indicating that the            candidates selected their respective categories as expected
+
+*** The chi-squared test significance is driven more by the democrats and less by the republicans to make the          voting easy. And the test significance is driven less by the democrats and more by the republicans to register     to vote category. 
+
+------------------------------------------------------------------------------------------------------------------
+
+6) SIXTH QUESTION
+
+## Performing the cramersV effect size 
+
+#### marital status variable
+
+```{r}
+cramersV(x = vote.cleaned$easy.vote, y = vote.cleaned$mstatus)
+```
+* The effect size is small
+* The relationship between opinions on voting and marital status is weak
+
+#### political party variable
+
+```{r}
+cramersV(x = vote.cleaned$easy.vote, y = vote.cleaned$polparty)
+```
+* The effect size is medium to large
+* The relationship between opinions on voting and political party is moderate to strong.
+-------------------------------------------------------------------------------------------------------------------
+
+7) SEVENTH QUESTION
+
+## Checking if the assumptions of sex and employment variable are met
+
+#### sex variable 
+
+*** We used the chi-squared test to test the null hypothesis that there was relationship between opinions on           voter registration and sex group. We rejected the null hypothesis and concluded that there was no                  statistically significant association between views on voter registration and sex [χ2(3) = 0.2884; p >.05].
+
+Alternate test: Since, the sex variable and easy.vote are both binary variables, McNemar’s test is a good                          alternative to the chi-squared test
+
+#### employment variable
+
+*** We used the chi-squared test to test the null hypothesis that there was relationship between opinions on           voter registration and employment group. We rejected the null hypothesis and concluded that there was no           statistically significant association between views on voter registration and employment [χ2(3) = 0.76663; p >     .05].
+
+Alternate test: Since, the employment variable has 3 categories and the easy.vote has 2 categories. i.e., binary,                  Cochran’s Q-test is an option 
+
+###################################################################################################################
