@@ -1,0 +1,284 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Project name : ANOVA test of technology usage
+
+# Project purpose : performing the ANOVA test 
+
+# Code author name : Mahankali Sravani
+
+# Date last edited : 4/7/2022
+
+# Location of data used : St.Louis, MO
+
+#########################################################################################
+
+## installing the necessary packages
+
+```{r}
+install.packages("dunn.test", dependencies = TRUE)
+
+```
+
+```{r}
+packages <- c('tidyverse','car','dunn.test')
+
+```
+
+```{r}
+purrr::walk(packages,library,character.only=T)
+
+```
+
+
+
+-----------------------------------------------------------------------------------------
+1) FIRST QUESTION
+
+## loading the file amd assigning it to gss.2018
+
+```{r}
+load(file = "gss2018.rda")
+```
+
+```{r}
+gss.2018 <- GSS
+```
+
+```{r}
+rm(GSS)
+```
+
+-----------------------------------------------------------------------------------------
+2) SECOND QUESTION
+
+## selecting the needed variables and assigning it to gss.2018.cleaned
+
+```{r}
+gss.2018.cleaned <- gss.2018 %>%
+  select(USETECH, SEX, MARITAL)%>%
+  
+  ## converting the values to NAs
+  
+  mutate(USETECH = na_if(x = USETECH, y = -1)) %>%
+  mutate(USETECH = na_if(x = USETECH, y = 998)) %>%
+  mutate(USETECH = na_if(x = USETECH, y = 999))%>%
+  
+  ## categorizing the sex variable
+  
+  mutate(SEX = factor(x = SEX, labels = c("male","female"))) %>%
+  mutate(MARITAL = na_if(x = MARITAL, y = 9)) %>%
+  
+  ## categorizing the marital status variable
+  
+  mutate(MARITAL = factor(x = MARITAL, labels = c("Married", 
+                                                  "Widowed", 
+                                                  "Divorced", 
+                                                  "Separated", 
+                                                  "Never married")))
+```
+
+```{r}
+summary(object = gss.2018.cleaned)
+```
+
+-----------------------------------------------------------------------------------------
+3) THIRD QUESTION
+
+## using graphics and descriptive statistics to examine tech use on its own, by sex,and     by marital status
+
+```{r}
+## calculating mean and standard deviation of technology usage
+
+use.stats <- gss.2018.cleaned %>%
+              drop_na(USETECH) %>%
+              summarize(m.techuse = mean(x = USETECH),
+              sd.techuse = sd(x = USETECH))
+use.stats
+```
+INTERPRETATION: During a typical week, about 55.14 percentage total time at work, people spent using different types of electronic technologies (such as computers, tablets, smart phones, cash registers,   scanners, GPS devices, robotic devices, and so on) 
+
+```{r}
+## plotting histogram for technology usage
+
+gss.2018.cleaned %>%
+    drop_na(USETECH) %>%
+    ggplot(aes(x = USETECH)) +
+    geom_histogram(fill = "purple",color = "black", bins= 30) +
+    theme_minimal() +
+    labs(x = "USE TECH",
+    y = "Number of participants")
+```
+INTERPRETATION: more than 200 people are using technology 100 percent in a day.
+
+```{r}
+## calculating mean and standard deviation of technology usage by sex
+
+use.sex.stats <- gss.2018.cleaned %>%
+                 drop_na(USETECH) %>%
+                 group_by(SEX) %>%
+                 summarize(m.sex.techuse = mean(x = USETECH),
+              sd.sex.techuse = sd(x = USETECH))
+use.sex.stats
+```
+INTERPRETATION: Clearly females(mean = 59.2, SD: 36.97) are using technology more than males(mean = 50.7, SD: 38.2). 
+
+```{r}
+## calculating mean and standard deviation of technology usage by marital status
+
+use.marital.stats <- gss.2018.cleaned %>%
+                 drop_na(USETECH) %>%
+                 group_by(MARITAL) %>%
+                 summarize(m.marital.techuse = mean(x = USETECH),
+              sd.marital.techuse = sd(x = USETECH))
+use.marital.stats
+```
+INTERPRETATION: married people are using more technology(mean = 59.35127, sd=	36.49864). And the usage is least by widowed(mean = 48.92453, sd =	39.48654). 
+
+
+```{r}
+## calculating mean and standard deviation of technology usage by sex and marital status
+
+grouped.use.stats <- gss.2018.cleaned %>%
+                     drop_na(USETECH) %>%
+                     group_by(SEX, MARITAL)%>%
+                     summarize(m.grouped.techuse = mean(x = USETECH),
+                     sd.grouped.techuse = sd(x = USETECH), .groups = 'drop')
+grouped.use.stats
+```
+INTERPRETATION: Married(mean = 65.54127, sd =	34.03136), widowed(mean = 50.86842, sd =	39.91895), Never married(mean = 56.25485, sd =	38.30636)  and divorced(mean = 52.66443, sd =	37.90254) women are using technology more than males. But separated(mean = 57.09524, sd =	40.30745) males are using technology more.
+
+
+```{r}
+## plotting the graph for technology usage by sex and marital status
+
+gss.2018.cleaned %>%
+      drop_na(USETECH)%>%
+      ggplot(aes(y = USETECH, x = MARITAL)) +
+      geom_boxplot(aes(fill = SEX), alpha = .4) +
+      scale_fill_manual(values = c("yellow", "orange")) +
+      theme_minimal() +
+      labs(x = "MARITAL STATUS",
+           y = "Percent of work time using technology")
+```
+INTERPRETATION: the means of divorced males and females are same. All the other category means of technology use by females is more than males. 
+-----------------------------------------------------------------------------------------
+4) FOURTH QUESTION
+
+INTERPRETATION: Based on the above findings, almost all females are using technology more irrespective of the marital status(apart from separated females). And all the individuals irrespective of the sex are using equal to or more than 50 percent of technology daily. 
+
+-----------------------------------------------------------------------------------------
+5) FIFTH QUESTION
+
+## performing one way ANOVA test gor technology usage and marital status
+
+SUMMARY OF ANOVA ASSUMPTIONS:
+
+* Continuous variable and independent groups
+* Independent observations
+* Normal distribution in each group
+* Equal variances for each group
+
+
+NHST 1: 
+H0: The mean time spent on technology use is equal across marital status.
+HA: The mean time spent on technology use is not equal across marital status.
+
+
+NHST 2:
+```{r}
+techuse.by.marital <- oneway.test(formula = USETECH ~ MARITAL,
+                  data = gss.2018.cleaned,
+                  var.equal = TRUE)
+techuse.by.marital
+```
+INTERPRETATION: Since , the F-Value is 3.822, the variation between sample means relative to the variation within the samples is less.
+
+NHST 3:
+the p-value is less than 0.05(p-value = 0.0042), so the null hypothesis is true. i.e., The mean time spent on technology use is equal across marital status.
+
+NHST 4,5: 
+ With a p-value < .05, the ANOVA indicates that there is likely a difference among the means of time spent using technology based on marital status.
+
+## performing Bonferroni post hoc test for technology usage and marital status
+
+```{r}
+bonf.tech.by.marital <- pairwise.t.test(x = gss.2018.cleaned$USETECH,
+                                    g = gss.2018.cleaned$MARITAL,
+                                    p.adj = "bonf")
+bonf.tech.by.marital
+```
+INTERPRETATION: the married people are seeming as significant variable when compared to divorced(p = 0.034), and never married(p = 0.018) as (p< 0.05). so, this indicate that the difference in mean time using technology between married and divorced, married and Never married are statistically significant.  
+-----------------------------------------------------------------------------------------
+6) SIXTH QUESTION
+
+## plotting density curve for technology usage by marital status
+
+```{r}
+gss.2018.cleaned %>%
+      drop_na(USETECH) %>%
+      ggplot(aes(x = USETECH)) +
+      geom_density(aes(fill = MARITAL)) +
+      facet_wrap(facets = vars(MARITAL), nrow = 2) +
+      scale_fill_brewer(palette = "Spectral", guide = FALSE) +
+      theme_minimal() +
+      labs(x = "Percent of time using tech",
+      y = "Probability density")
+```
+INTERPRETATION: No group in the marital status variable is normal, based on density plots.
+
+## performing levenes test
+
+The null hypothesis is that the variances are equal, while the alternate is that at least two of the   variances are different. 
+
+```{r}
+car::leveneTest(y = USETECH ~ MARITAL, data = gss.2018.cleaned, center = mean)
+```
+INTERPRETATION: since, the p - value is less than 0.05 (p = 0.034), the variances of technology usage are significantly different across the marital status groups. Therefore, we accept the alternate hypothesis 
+
+## performing kruskal wallis rank sum test for technology uasage by marital status
+
+NHST1:
+H0: The mean rank of technology use is the same across educational attainment groups.
+HA: The mean rank of technology use is not the same across educational attainment groups.
+
+```{r}
+kw.usetech.by.MARITAL <- kruskal.test(formula = USETECH ~ MARITAL,
+                                     data = gss.2018.cleaned)
+kw.usetech.by.MARITAL
+```
+INTERPRETATION: since, the normality assuption failed for ANOVA, we have performed kruskal- wallis rank sum test. As the p-value is less than the significance level 0.05, we can conclude that there are significant differences between the treatment groups.
+-----------------------------------------------------------------------------------------
+7) SEVENTH QUESTION
+
+## performing two way ANOVA test for technology usage by marital status and sex
+
+NHST1:
+H0: The mean time using technology at work is the same across groups of marital status       and sex.
+HA: The mean time using technology at work is not the same across the groups.
+
+```{r}
+techuse.by.marital.sex <- aov(formula = USETECH ~ MARITAL * SEX,
+                      data = gss.2018.cleaned)
+summary(object = techuse.by.marital.sex)
+```
+INTERPRETATION: Since the p - values are less than 0.05 for marital status and sex, those are significant individually. But they are not significant when grouped. So, we reject null hypothesis 
+
+## performing shapiro test
+
+```{r}
+shapiro.test(x = techuse.by.marital.sex$residuals)
+```
+INTERPRETATION: Shapiro-Wilk test is used to check the normality of the residuals. By rejecting this null hypothesis with a tiny p-value, the assumption   is failed. 
+So, this test shows that the residuals fail the normality assumption.
+
+## performing levenes test
+
+```{r}
+car::leveneTest(y = USETECH ~ MARITAL*SEX, center = mean,
+                data = gss.2018.cleaned)
+```
+INTERPRETAION:  The results were statistically significant so the null hypothesis was   rejected
+
