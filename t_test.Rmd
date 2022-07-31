@@ -1,0 +1,261 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+# Project name : t-test on diastolic blood pressure
+
+# Project purpose : performing the t- test 
+
+# Code author name : Mahankali Sravani
+
+# Date last edited : 4/2/2022
+
+# Location of data used : St.Louis, MO
+
+#########################################################################################
+```{r}
+install.packages("car", dependencies = TRUE)
+```
+
+```{r}
+install.packages("BSDA", dependencies = TRUE)
+```
+
+```{r}
+install.packages("rcompanion", dependencies = TRUE)
+```
+
+
+```{r}
+packages <- c('RNHANES','lsr','tidyverse','car','BSDA','rcompanion')
+
+purrr::walk(packages,library,character.only=T)
+
+```
+-----------------------------------------------------------------------------------------
+
+1) FIRST QUESTION
+
+## reading the nhanes_2015-2016_ch6.csv file
+
+```{r}
+nhanes.2016 <- read.csv(file = "nhanes_2015-2016_ch6.csv")
+```
+-----------------------------------------------------------------------------------------
+
+2) SECOND QUESTION
+
+## recoding and renaming the variables
+
+```{r}
+nhanes.2016.cleaned <- nhanes.2016%>%
+  mutate(RIAGENDR = recode_factor(.x = RIAGENDR,
+                              `1` = 'Male', 
+                              `2` = 'Female' ))%>% 
+  mutate(BPXDI1 = na_if(BPXDI1, 0))%>%
+  mutate(BPXDI2 = na_if(BPXDI2, 0))%>%
+  rename(sex = RIAGENDR) %>%
+  rename(diastolic1 = BPXDI1)%>%
+  rename(diastolic2 = BPXDI2)%>%
+  select(sex, diastolic1, diastolic2)
+```
+
+## calculating the summary of the variables
+
+```{r}
+summary(nhanes.2016.cleaned)
+```
+
+-----------------------------------------------------------------------------------------
+3) THIRD QUESTION
+
+## calculating the mean standard deviation of the first reading of the diastolic blood pressure
+
+```{r}
+nhanes.2016.cleaned %>% 
+    drop_na(diastolic1) %>%
+    summarize(m.dbp1 = mean(x = diastolic1),
+    sd.dbp1 = sd(x = diastolic1))
+```
+The  mean and standard deviation of the first reading of the diastolic blood pressure are 66.7255 and 13.02 respectively.
+
+## plotting the histogram of the first reading of the diastolic blood pressure
+
+```{r}
+nhanes.2016.cleaned %>%
+    drop_na(diastolic1) %>%
+    ggplot(aes(x = diastolic1)) +
+    geom_histogram(fill = "orange",color = "black", bins= 30) +
+    theme_minimal() +
+    labs(x = "Diastolic blood pressure (mmHg)",
+    y = "Number of NHANES participants")
+```
+## the  descriptive  for  diastolic  measure  1  by  sex
+
+```{r}
+nhanes.2016.cleaned %>%
+  drop_na(diastolic1) %>%
+  group_by(sex) %>%
+  summarize(m.sbp = mean(x = diastolic1),
+            sd.sbp = sd(x = diastolic1))
+```
+
+-----------------------------------------------------------------------------------------
+4) FOURTH QUESTION
+
+## calculating the mean and standard deviation of second reading of diastolic blood pressure 
+
+```{r}
+nhanes.2016.cleaned %>% 
+    drop_na(diastolic2) %>%
+    summarize(m.sbp = mean(x = diastolic2),
+    sd.sbp = sd(x = diastolic2))
+```
+the mean and standard deviation of second reading of diastolic blood pressure are 66.659 and 12.97 respectively
+
+## plotting the histogram of second reading of diastolic blood pressure
+
+```{r}
+nhanes.2016.cleaned %>%
+    drop_na(diastolic2) %>%
+    ggplot(aes(x = diastolic2)) +
+    geom_histogram(fill = "purple",color = "black", bins= 30) +
+    theme_minimal() +
+    labs(x = "Diastolic blood pressure (mmHg)",
+    y = "Number of NHANES participants")
+```
+
+-----------------------------------------------------------------------------------------
+5) FIFTH QUESTION
+
+The mean of diastolic blood pressure measure 1(first reading) is 66.72555 and diastolic blood pressure measure 2(second reading)is 66.65986. This shows that the mean of both the measures are almost same. The mean diastolic blood pressure is almost equal to 67 mm Hg for both the readings. From both the graphs it is observed that most of the people had both the first and second readings at 67mm Hg.
+-----------------------------------------------------------------------------------------
+6) SIXTH QUESTION
+
+The mean blood pressure measure 1 for males(67.48629) is slightly higher than that of females(65.99779). This means that the males are affected by high blood pressures than females.
+-----------------------------------------------------------------------------------------
+7) SEVENTH QUESTION
+
+Independent-samples t-test assumptions:
+  Continuous variable and two independent groups
+  Independent observations
+  Normal distribution in each group
+  Equal variances for each group
+
+## conducting independent t-test for first reading of diastolic blood pressure of males and females
+
+* assumptions for the test
+
+H0:There is no difference in mean diastolic1 between males and females in the U.S.          population.
+HA:There is a difference in mean diastolic1 between males and females in the U.S.           population.
+
+```{r}
+sex.diastolic1 <- t.test(formula = nhanes.2016.cleaned$diastolic1 ~
+               nhanes.2016.cleaned$sex)
+sex.diastolic1
+```
+since, the p value is less than 0.05(p = 0.000001588), we retain the null hypotheses. That is There is no difference in mean diastolic1 between males and females in the U.S. population.Since, the t-test value is small(t-test = 4.804), the mean diastolic1 of males and females are similar.
+
+## plotting the histogram of first reading diastolic blood pressure
+
+```{r}
+nhanes.2016.cleaned %>%
+  ggplot(aes(x = diastolic1)) +
+  geom_histogram(fill = "#7463AC", color = "white", bins=30) +
+  theme_minimal() +
+  labs(x = "diastolic1",
+  y = "Number of NHANES participants")
+```
+The first reading of the diastolic blood pressure is right skewed. Hence, the data is not normal.
+
+## performing the levenes test to test variances 
+
+* assumptions for the test
+
+H0: the variances of male and female diastolic pressure(diastolic1) are equal
+H1: the variances of male and female diastolic pressure(diastolic1) are not equal.
+
+```{r}
+car::leveneTest(y = diastolic1 ~ sex, data = nhanes.2016.cleaned)
+```
+The p value is 0.59 which is smaller to reject the null hypothesis. So, the variances of both the genders are equal for first reading of diastolic blood pressure
+
+Report: The t-test assumption is passed, the normality assumption failed and the levene's test for variances is passed. This implies that we have to perform the alternate test, i.e., Kolmogorov-Smirnov test. 
+
+## performing Kolmogorov-Smirnov test for the first reading of the diastolic blood pressure
+
+* assumptions for the test
+
+H0: The distribution of diastolic blood pressure(first reading) for males and females is the same in the U.S. population.
+HA: The distribution of diastolic blood pressure(first reading) for males and females is not the same in the U.S. population.
+
+
+```{r}
+male.diastolic1 <- nhanes.2016.cleaned %>%
+filter(sex == "Male") %>%
+pull(var = diastolic1)
+female.diastolic1 <- nhanes.2016.cleaned %>%
+filter(sex == "Female") %>%
+  #pull() function is useful for getting a single variable out of a data frame as a stand-alone vector
+pull(var = diastolic1)
+ks.test(x = male.diastolic1, y = female.diastolic1)
+```
+Since the p-value is less than 0.05(p = 0.000000000000000022), the distribution of diastolic blood pressure(first reading) for males and females is the same in the U.S. population.
+-----------------------------------------------------------------------------------------
+8) EIGTH QUESTION
+
+Dependent-samples t-test assumptions:
+  Continuous variable and two dependent groups
+  Independent observations
+  Normal distribution of differences
+
+## conducting the dependent t-test for first reading of diastolic blood pressure and second reading of diastolic blood pressure.
+
+* assumptions for the test
+
+H0: There is no difference between Measures 1 and 2 for diastolic blood pressure.
+HA: There is a difference between Measures 1 and 2 for diastolic blood pressure.
+
+```{r}
+dependent.test <- t.test(x = nhanes.2016.cleaned$diastolic1,
+                         y = nhanes.2016.cleaned$diastolic2,
+                         paired = TRUE)
+dependent.test
+```
+Since the p-value is less than 0.05(p-value = 0.000000000000000022), we accept null hypothesis i.e., There is no difference between Measures 1 and 2 for diastolic blood pressure.
+
+## adding the differnce between readings to the data
+
+```{r}
+nhanes.2016.cleaned <- nhanes.2016.cleaned %>%
+  mutate(diff.diastolic = diastolic1 - diastolic2)
+```
+
+## plotting the histogram for differnce
+
+```{r}
+nhanes.2016.cleaned %>%
+  ggplot(aes(x = diff.diastolic)) +
+  geom_histogram(fill = "#7463AC", color = "white", bins = 30) +
+  theme_minimal() +
+  labs(x = "Difference between DBP Measures 1 and 2",
+  y = "Number of NHANES participants")
+```
+The distribution of the difference between diastolic blood pressure 1 and 2 is normal distribution. 
+
+## performing wilcox test
+
+H0: There is no difference in ranked diastolic blood pressure(first reading) values for      males and females in the U.S. population.
+HA: There is a difference in ranked diastolic blood pressure(first reading) values for       males and females in the U.S. population.
+
+```{r}
+wil.diff.diastolic <- wilcox.test(formula =
+                  nhanes.2016.cleaned$diff.diastolic ~
+                  nhanes.2016.cleaned$sex,
+                paired = FALSE)
+
+wil.diff.diastolic
+```
+Since the p-value is greater than 0.05(p-value = 0.2632), there is a difference in ranked diastolic blood pressure(first reading) values for males and females in the U.S. population.
