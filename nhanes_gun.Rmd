@@ -1,0 +1,247 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+ Project name : Gun use data visualization
+
+ Project purpose : Cleaning and visualizing gun usage with bar charts 
+
+ Code author name : Mahankali Sravani
+
+ Date last edited : 2/25/2022
+
+ Location of data used : St.Louis, MO
+
+##################################################################################################################################################
+
+=> loading the data into the project RMD file
+
+```{r}
+library(readr)
+nhanes.2011 <- read.csv("nhanes_2011_2012_ch3.csv")
+
+```
+
+=> loading the package and cleaning the data file
+
+```{r}
+library(package = "tidyverse") 
+nhanes.2011.clean <- nhanes.2011 %>% 
+  
+  ## Converting the vales 77 and 99 of INDHHIN2 into NA
+  
+  mutate(INDHHIN2 = na_if(x = INDHHIN2, 77)) %>% 
+  mutate(INDHHIN2 = na_if(x = INDHHIN2, 99)) %>% 
+  
+  ## recoding the INDHHIN2
+  
+  mutate(INDHHIN2 = recode_factor(.x = INDHHIN2, 
+                                  `1` = "$0 to $4,999", 
+                                  `2` = "$5,000 to $9,999", 
+                                  `3` = "$10,000 to $14,999", 
+                                  `4` = "$15,000 to $19,999", 
+                                  `5` = "$20,000 to $24,999", 
+                                  `6` = "$25,000 to $34,999", 
+                                  `7` = "$35,000 to $44,999", 
+                                  `8` = "$45,000 to $54,999", 
+                                  `9` = "$55,000 to $64,999", 
+                                  `10` = "$65,000 to $74,999", 
+                                  `12` = "$20,000 and Over", 
+                                  `13` = "Under $20,000", 
+                                  `14` = "$75,000 to $99,999", 
+                                  `15` = "$100,000 and Over")) %>%  
+  
+  ## dropping NA values of INDHHIN2
+  
+  drop_na(INDHHIN2)%>%
+  
+  ## converting the values of 77 and 99 of DMDMARTL category into NA
+  
+  mutate(DMDMARTL = na_if(x = DMDMARTL, 77)) %>%  
+  mutate(DMDMARTL = na_if(x = DMDMARTL, 99)) %>%  
+  mutate(DMDMARTL = recode_factor(.x = DMDMARTL, 
+                                  `1` = "Married", 
+                                  `2` = "Widowed", 
+                                  `3` = "Divorced", 
+                                  `4` = "Separated", 
+                                  `5` = "Never married", 
+                                  `6` = "Living with partner")) %>% 
+  
+  ## dropping NA values of DMDMARTL category
+  
+  drop_na(DMDMARTL)%>%
+  
+  ## recoding the values of RIDRETH3
+  
+  mutate(RIDRETH3 = recode_factor(.x = RIDRETH3, `1` = "Mexican American", 
+                                  `2` = "Other Hispanic",  
+                                  `3` = "Non-Hispanic White", 
+                                  `4` = "Non-Hispanic Black", 
+                                  `6` = "Non-Hispanic Asian", 
+                                  `7` = "Other Race - Including Multi-Racial")) %>%  
+  
+  ## recoding the AUQ300 
+  
+  mutate(AUQ300 = na_if(x = AUQ300, y = 7)) %>% 
+  mutate(AUQ300 = recode_factor(.x = AUQ300, 
+                                `1` = 'Yes', 
+                                `2` = 'No')) %>% 
+  
+  ## renaming the AUQ300 as gun.use
+  
+  rename(gun.use = AUQ300) %>%  
+  
+  ## dropping the NA values of gun.use
+  
+  drop_na(gun.use) %>%
+  
+  ## renaming the RIDRETH3, INDHHIN2, DMDMARTL as race-eth, income and marital respectively
+  
+  rename(race.eth = RIDRETH3) %>%  
+  rename(income = INDHHIN2) %>%  
+  rename(marital = DMDMARTL) %>%
+  
+  ## selecting the gun.use, race.eth, income, marital from whole data set 
+  
+  select(gun.use, race.eth, income, marital) 
+```
+
+=> checking the summary of the data
+
+```{r}
+summary(object = nhanes.2011.clean) 
+```
+Observation: All the NA values are dropped and the specific variables are selected are recoded.
+
+
+=> bar chart of income category
+
+```{r}
+nhanes.gun.income <- nhanes.2011.clean %>%
+ggplot(aes(x = income), y = number) +
+geom_bar(aes(fill = income)) +
+theme_minimal() +
+labs(x = "Income category", y = "Number of observations") +
+coord_flip() +
+scale_fill_manual(values = c("$0 to $4,999" = "gray", 
+                             "$5,000 to $9,999" = "gray", 
+                             "$10,000 to $14,999" = "gray", 
+                             "$15,000 to $19,999" = "gray", 
+                             "$20,000 to $24,999" = "gray", 
+                             "$25,000 to $34,999" = "gray", 
+                             "$35,000 to $44,999" = "gray", 
+                             "$45,000 to $54,999" = "gray", 
+                             "$55,000 to $64,999" = "gray", 
+                             "$65,000 to $74,999" = "gray", 
+                             "$20,000 and Over" = "gray", 
+                             "Under $20,000" = "gray", 
+                             "$75,000 to $99,999" = "gray", 
+                             "$100,000 and Over" = "gray"), guide = "none")
+
+nhanes.gun.income
+```
+Observation: People earning $100000 and more are using guns in higher number, and people with income under $20000 were observed to use gun in                  lesser number. The usage of gun is not fully dependent on their income, as observed in graph, it is fluctuating.
+
+
+=> bar chart of marital status
+
+```{r}
+nhanes.gun.marital <- nhanes.2011.clean %>%
+
+ggplot(aes(x = marital), y = number) +
+geom_bar(aes(fill = marital)) +
+theme_minimal() +
+labs(x = "Marital status", y = "Number of observations") +
+coord_flip() +
+
+scale_fill_manual(values = c("Married" = "gray", 
+                             "Widowed" = "gray", 
+                             "Divorced" = "gray", 
+                             "Separated" = "gray", 
+                             "Never married" = "gray", 
+                             "Living with partner" = "gray"),
+                              guide = "none")
+```
+
+```{r}
+nhanes.gun.marital
+```
+Observation: Married people are mostly using guns i.e., nearly 2200. 
+
+
+=> bar chart comparing the income with the gun usage
+
+```{r}
+# formatted grouped bar chart with percents 
+group.gun.use.income <- nhanes.2011.clean %>%
+  # count how many are in each group
+  # pick the variable that will add # to 100%
+    
+ggplot(aes(x = income, fill = gun.use)) +
+  # use new values from mutate
+geom_bar(position = "dodge") +
+theme_minimal() +
+labs(x = "Income category",
+y = "Number of Observations") +
+coord_flip() +
+scale_fill_manual(values = c("#EC7063", "#76D7C4"),
+name = "gun.use")
+```
+
+```{r}
+group.gun.use.income
+```
+Observation: People earning $100000 or more have highest number of both usage and non-usage of guns. The degree of usage and non-usage are same of              all the people earning in between $10000 and $20000. It appears that the income doesn't play an important role in assessing gun                   usage.
+
+
+=> bar chart comparing the race-ethnicity with gun usage
+
+```{r}
+group.gun.use.race <- nhanes.2011.clean %>%
+  # count how many are in each group
+  # pick the variable that will add # to 100%
+    
+ggplot(aes(x = race.eth, fill = gun.use)) +
+  # use new values from mutate
+geom_bar(position = "dodge") +
+theme_minimal() +
+labs(x = "Race ethnicity",
+y = "Number of Observations") +
+coord_flip() +
+scale_fill_manual(values = c("#EC7063", "#76D7C4"),
+name = "gun.use")
+```
+
+```{r}
+group.gun.use.race
+```
+Observation: Non-Hispanic whites used gun in large numbers. The usage of gun in Non-Hispanic Blck and Asian populations is low. The Rac-ethnicity              metric is useful in comparing gun usage.
+
+
+=> bar chart comparing the marital status with gun usage
+
+```{r}
+group.gun.use.marital <- nhanes.2011.clean %>%
+  # count how many are in each group
+  # pick the variable that will add # to 100%
+    
+ggplot(aes(x = marital, fill = gun.use)) +
+  # use new values from mutate
+geom_bar(position = "dodge") +
+theme_minimal() +
+labs(x = "Marital status",
+y = "Number of Observations") +
+coord_flip() +
+scale_fill_manual(values = c("#EC7063", "#76D7C4"),
+name = "gun.use")
+```
+
+```{r}
+group.gun.use.marital
+```
+Observation: The usage is low in seperated and widowed individuals. People in Live-in relationships and divorced individuals have similar gun                  usage.  
+
+
+
+################################################################################################################################################
