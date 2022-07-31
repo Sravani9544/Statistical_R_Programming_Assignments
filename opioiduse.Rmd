@@ -1,0 +1,344 @@
+---
+title: "OPIOIDUSE"
+output: html_document
+---
+# Project name : studying opioid test therapy requirements data 
+
+# Project purpose : Cleaning and creating a table with transgender data 
+
+# Code author name : Mahankali Sravani
+
+# Date last edited : 3/6/2022
+
+# Location of data used : St.Louis, MO
+
+####################################################################################################
+
+## reading the opioid usage file 
+
+```{r}
+library(readr)
+opioid.use <- read.csv("pdmp_2017_kff_ch4.csv")
+```
+
+## loading the tidyverse module 
+
+```{r}
+library(package = "tidyverse")
+```
+
+## studying the summary of the data
+
+```{r}
+summary(object = opioid.use)
+```
+Observation: All the variables are characters with length 51
+
+## selecting the variable OPioid.Step.Therapy.Requirements, converting it to numeric, and recoding the    variable
+
+```{r}
+set.seed(seed = 30)
+
+
+opioid.use.cleaned <- opioid.use%>%select(Opioid.Step.Therapy.Requirements) %>%
+  mutate(Opioid.Step.Therapy.Requirements = as.numeric(recode(.x =Opioid.Step.Therapy.Requirements,
+                                  `No` = 0L,
+                                  `Yes` = 1L)))
+
+```
+
+## studying the summary of the new created variable opioid.use.cleaned 
+
+```{r}
+summary(object = opioid.use.cleaned)
+```
+Observation: the data is converted into numeric data
+
+## examining the oioid.use.cleaned
+
+```{r}
+view(opioid.use.cleaned)
+```
+
+Observation: the data is converted into 1s and 0s, 0 for No and 1 for Yes.
+
+1. FIRST QUESTION
+
+## Conerting the data intlo the data frame 
+
+```{r}
+Df2 <- data.frame(
+  response=sample(opioid.use.cleaned,51,replace=T),
+  stringsAsFactors=F)
+```
+
+## Converting the data frame into a table of Opioid.Step.Therapy.Requrements
+
+```{r}
+opioid.policy.kff  <- table(Df2$response.Opioid.Step.Therapy.Requirements)
+
+opioid.policy.kff 
+```
+Observation: 12 states didn't have Opioid.Step.Therapy.Requirements,and 39 states opted for them.
+
+## calculating the proportion of the opioid.policy.kff using prop.table() function
+
+```{r}
+prop.table(opioid.policy.kff)
+```
+Observation: 23.5% of states didn't opt for Opioid,Step.Therapy.Requirements and 76.47% of states opted for it.
+
+2. SECOND QUESTION
+
+## using dbinorm to find the probability
+
+```{r}
+dbinom(x = 5, size = 10, prob = .765)
+```
+Observation: If 10 states were chosen at random, there is a 0.047 probability that exactly 5 of them 
+             would have adopted the step therapy policy.
+
+3. THIRD QUESTION
+
+## using dbinorm to find the probability
+
+```{r}
+dbinom(x = 5, size = 15, prob = .765)
+```
+Observation: If 15 states were chosen at random, there is a 0.000404 probability that exactly 5 of                 them would have adopted the step therapy policy.
+
+4. FOURTH QUESTION
+
+## selecting sample of 30 states with seed value and recoding it. 
+
+```{r}
+set.seed(seed = 50)
+# sample 30 states at random
+opioid.use.cleaned1 <- opioid.use%>%select(Opioid.Step.Therapy.Requirements) %>%
+  mutate(Opioid.Step.Therapy.Requirements = as.numeric(recode(.x =Opioid.Step.Therapy.Requirements,
+                                  `No` = 0,
+                                  `Yes` = 1)))%>%
+
+sample_n(size = 30)
+```
+
+## coverting into data frame
+
+```{r}
+Df4 <- data.frame(
+  response=sample(opioid.use.cleaned1,51,replace=T),
+  stringsAsFactors=F)
+opioid.policy.kff1  <- table(Df4$response.Opioid.Step.Therapy.Requirements)
+opioid.policy.kff1 
+```
+Observation: Out of 30 sample states, 7 of them didn't opt for the step therapy and 23 of them opted               for it
+
+## studying the proportions using prop.table() function.
+
+```{r}
+prop.table(opioid.policy.kff1)
+```
+Observation: Observation: 23.33% of states didn't opt for Opioid,Step.Therapy.Requirements and 76.66%              of states opted for it
+
+## selecting the reponses and assigning it to the variable requirement
+
+```{r}
+requirement <- Df4$response.Opioid.Step.Therapy.Requirements
+```
+
+## calculating 95%  confidence  interval  for  the proportion. 
+
+```{r}
+opioid.policy.kff.Df4 <- Df4 %>%
+summarize(mean.s1 = mean(x = requirement),
+     se.s1 = sd(x = requirement)/sqrt(x = length(x = requirement)),
+     lower.ci.s1 = mean.s1 - 1.96 * se.s1,
+     upper.ci.s1 = mean.s1 + 1.96 * se.s1)
+
+opioid.policy.kff.Df4
+```
+Observation: The mean of the sample is 0.766, standard error is 0.0785, lower class interval is 0.612
+             and the upper class interval is 0.92060
+-------------------------------------------------------------------------------------------------
+5. FIFTH QUESTION
+
+## reading the opioid dist to needle exchange data and assigning it to opioid.dist.each
+
+```{r}
+opioid.dist.exch <- read.csv("opioid_dist_to_needle_exchange_2018.csv")
+```
+
+## renaming the variable VALUE in the data as distance
+
+```{r}
+dist.exch.cleaned <- opioid.dist.exch %>%
+rename('distance' = VALUE)
+```
+
+## calculating mean and standard deviation of the data
+
+```{r}
+dist.exch.cleaned %>%
+summarize(mean.dist = mean(x = distance),
+sd.dist = sd(x = distance),
+n = n())
+```
+Observation: mean of the data is 105.48, and standard deviation is 87.35
+
+6. SIXTH QUESTION
+
+## viewing the data dist.exch.cleaned
+
+```{r}
+view(dist.exch.cleaned)
+```
+
+## visualizing the data 
+
+```{r}
+dist.exch.cleaned %>%
+ggplot(aes(x = distance)) +
+geom_histogram(fill = "#D776AF", color = "white", bins = 30) +
+theme_minimal() +
+labs(x = "Miles to needle exchange",
+y = "Number of counties")
+```
+Observation: the data is left skewed, and we need to transform the data.
+
+## the data is transformed into cuberoot, log, inverse, and square root function
+
+```{r}
+dist.exch.cleaned <- dist.exch.cleaned%>%
+mutate(miles.cube.root = distance^(1/3)) %>%
+mutate(miles.log = log(x = distance)) %>%
+mutate(miles.inverse = 1/distance) %>%
+mutate(miles.sqrt = sqrt(x = distance))
+
+```
+
+## visualizing the log transformation of the data.
+
+```{r}
+logged <- dist.exch.cleaned %>%
+ggplot(aes(x = miles.log)) +
+geom_histogram(fill = "#D776AF", color = "white", bins = 30) +
+theme_minimal() +
+labs(x = "Log of miles to needle exchange", y = "")
+```
+
+## visualizing the inverse transformation of the data
+
+```{r}
+inversed <- dist.exch.cleaned %>%
+ggplot(aes(x = miles.inverse)) +
+geom_histogram(fill = "#D776AF", color = "white", bins = 30) +
+theme_minimal() + xlim(0, 1) +
+labs(x = "Inverse of miles to needle exchange", y = "Number of counties")
+```
+
+## visualizing the square root transformation of the data
+
+```{r}
+squareroot <- dist.exch.cleaned %>%
+ggplot(aes(x = miles.sqrt)) +
+geom_histogram(fill = "#D776AF", color = "white", bins = 30) +
+theme_minimal() +
+labs(x = "square root of miles to needle exchange", y = "")
+```
+
+## visualzing the cube root transformation of the data
+
+```{r}
+cuberoot <- dist.exch.cleaned %>%
+ggplot(aes(x = miles.cube.root)) +
+geom_histogram(fill = "#D776AF", color = "white", bins = 30) +
+theme_minimal() +
+labs(x = "Cube root of miles to needle exchange", y = "Number of counties")
+```
+
+## printing the graphs in a grid
+
+```{r}
+gridExtra::grid.arrange(cuberoot, logged, inversed, squareroot)
+```
+Observation: the cuberoot transformation is the perfect transformation to get normalized curve
+
+## calculating the mean and standard deviation of the transformed data
+
+```{r}
+dist.exch.cleaned %>%
+summarize(mean.tran.dist = mean(x = miles.cube.root),
+       sd.tran.dist = sd(x = miles.cube.root))
+```
+Observation: the mean is 4.349 and the standard deviation is 1.327
+
+## calculating St. Louis County distance  to needle exchange
+
+```{r}
+st.louis.distance = 12.27^(1/3)
+st.louis.distance
+```
+Observation: the needle exchange is 2.306 miles from St.Louis County
+
+## calculating St. Louis County  z-score  for  distance  to needle exchange
+
+```{r}
+z.score <- (st.louis.distance - 4.349566)/1.327338	
+z.score
+```
+Observation: negative value for a county implies distance was lower than the mean. And in this case                z-score is -1.539 
+
+7. SEVENTH QUESTION
+
+## Selecting 500 countries from sample at random
+
+```{r}
+set.seed(seed = 18)
+# sample 500 counties at random
+counties.500 <- dist.exch.cleaned %>%
+sample_n(size = 500, replace = TRUE)
+```
+
+## calculating the mean, standard deviation and standard error for the sample
+
+```{r}
+counties.500 %>%
+summarize(mean.dist = mean(x = distance),
+    sd.dist = sd(x = distance),
+ se.dist = sd(x = distance)/sqrt(x = length(x = distance)))
+```
+Observation: the mean of the sample is 106.6, standard deviation is 84.89, and standard error is 3.79
+
+8.EIGTH QUESTION
+
+## Calculating the mean of population data
+
+```{r}
+dist.exch.cleaned %>%
+summarize(mean.dist = mean(x = distance))
+
+```
+## calculating mean of sample 
+
+```{r}
+counties.500 %>%
+summarize(mean.dist = mean(x = distance))
+```
+Observation: The mean of the population and the sample are almost similar most of the sample means are              within one or two standard deviations of the population mean.
+
+9. NINTH QUESTION
+
+## calculating 95% confidence intervals of the sample
+
+```{r}
+counties.500 <- counties.500 %>%
+  summarize(mean.s1 = mean(x = distance),
+     se.s1 = sd(x = distance)/sqrt(x = length(x = distance)),
+     lower.ci.s1 = mean.s1 - 1.96 * se.s1,
+     upper.ci.s1 = mean.s1 + 1.96 * se.s1)
+
+counties.500
+```
+Observation: The mean, standard error, lower class interval and upper class interval are 106.6, 3.79, 99.16, and 114.04 respectively.
+
+####################################################################################################
