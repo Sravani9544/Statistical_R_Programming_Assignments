@@ -1,0 +1,303 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+# Project name : regression analysis of syringe program data
+
+# Project purpose : performing the linear regression 
+
+# Code author name : Mahankali Sravani
+
+# Date last edited : 4/23/2022
+
+# Location of data used : St.Louis, MO
+
+#########################################################################################
+
+## loading the necessary packages
+```{r}
+packages <- c('tidyverse','tableone','lmtest','broom','car')
+```
+
+```{r}
+purrr::walk(packages,library,character.only=T)
+```
+
+-----------------------------------------------------------------------------------------
+1) Import the cleaned data set dist_ssp_amfar_ch9.csv from edge.sagepub.com/harris1e.       (0.5 points) 
+
+
+```{r}
+## loading the data
+ssp.data <- read.csv(file = "dist_ssp_amfar_ch9.csv")
+```
+
+```{r}
+## producing summary
+summary(ssp.data)
+```
+
+-----------------------------------------------------------------------------------------
+2) Create a model with the number of opioid prescriptions per 100 people as the 
+   predictor variable and the distance to syringe program variable transformed using 
+   a cube root transformation as the outcome variable (Achievements 3 and 7). (0.5  
+   points) 
+
+
+```{r}
+## creating a linear model for cube root of distance to nearest ssp and opioid prescriptions per 100 people
+
+dist.by.rx <- lm(formula = (dist_SSP)^(1/3) ~ opioid_RxRate,
+                  data = dist.ssp,
+                  na.action = na.exclude)
+
+```
+
+-----------------------------------------------------------------------------------------
+3) Check the model assumptions (2 points) 
+
+
+## Assumptions for linear regression:
+The calculations underlying the simple linear regression model of dist_SSP ~ opioid_RXRate are based on several assumptions about the data used in the model:
+* Observations are independent.
+* The outcome is continuous.
+* The relationship between the two variables is linear (linearity).
+* The variance is constant with the points distributed equally   around the line            (homoscedasticity).
+* The residuals are independent.
+* The residuals are normally distributed.
+
+
+* checking the independent variables assumption:
+INTERPRETATION: Since, the data is collected from the counties in same state, the variables may not be independent 
+
+* checking the continuous variables assumption:
+INTERPRETATION: since we are considering the distance to a syringe program is measured in miles, the continuous assumption is met
+
+* checking the linearity assumption:
+```{r}
+## plotting the scatter plot using ggplot between dis_ssp and opioid_RxRate
+
+ssp.data %>%
+  ggplot(aes(x = opioid_RxRate, y = dist_SSP)) +
+  geom_point(aes(size = "County"), color = "#7463AC", alpha = .6) +
+  geom_smooth(aes(linetype = "Linear fit line"), method = "lm",
+      se = FALSE, color = "gray60") +
+  geom_smooth(aes(color = "Loess curve"), se = FALSE) +
+theme_minimal() +
+labs(x = "opioid prescriptions per 100 peoples", y = "Miles to syringe program") +
+scale_size_manual(values = 2, name = "") +
+scale_linetype_manual(values = 1, name = "")
+```
+INTERPRETATION: Loess curve was almost linear except upto 90, so this assumption is almost met.
+
+
+* checking the homoscedasticity assumption
+```{r}
+## testing for equal variance
+const.var.test <- lmtest::bptest(formula = dist.by.rx)
+const.var.test
+```
+INTERPRETATION: Since the p-value is 0.0001784(p<0.05), we reject the null hypothesis of equal variance. So, the homoscedasticity assumption is not met. 
+
+* checking the independence of residuals assumption
+```{r}
+## conducting durbin watson test
+
+lmtest::dwtest(formula = dist.by.rx)
+```
+INTERPRETATION: The D-W statistic is near 2 and the p-value is greater than 0.05(p=0.53), so we conclude that the null hypothesis is retained.Hence,this assumption is met.
+
+
+* checking the normality of residuals assumption
+```{r}
+# checking residual plot of opioid_RxRate and distance to syringe program
+
+data.frame(dist.by.rx$residuals) %>%
+    ggplot(aes(x = dist.by.rx.residuals)) +
+    geom_histogram(fill = "#7463AC", col = "white", bins  = 30) +
+  theme_minimal() +
+labs(x = "Residual (distance between observed and predicted\nmiles to
+  syringe program)",
+y = "opioid prescriptions per 100 people")
+```
+INTERPRETATION: The histogram suggests that the residuals are near to normal. So, normality of residuals assumption is met.
+
+-----------------------------------------------------------------------------------------
+4) Interpret the model results (Achievements 4 and 5). – 1 point 
+
+```{r}
+## checking the summary of linear regression model
+
+summary(dist.by.rx)
+```
+
+INTERPRETATION: the residuals in the output tells about the difference in predicted values and the actual values. The negative median suggests that the data might be slightly right skewed The model explained about 0.018% of variation in the distance to syringe programs. the baseline model [F(2, 497) = 1.091] seems not good and we might need to produce another model for analysis. Opioid_RxRate variable if not a statistically significant predictor (b = -0.0018; t = -1.044; p > .001).  
+
+-----------------------------------------------------------------------------------------
+5) Add the metro variable to the model (Achievement 7). – 1 point 
+
+```{r}
+## conducting linear regression model for cube root of dist_ssp opioid_RxRate and metro variables
+
+dist.by.rx.met <- lm(formula = (dist_SSP)^(1/3) ~ opioid_RxRate + metro,
+                  data = dist.ssp,
+                  na.action = na.exclude)
+
+```
+
+-----------------------------------------------------------------------------------------
+6) Interpret the model results (Achievements 3 and 7). – 1point 
+
+
+```{r}
+## checking the summary
+
+summary(dist.by.rx.met)
+```
+INTERPRETATION: the residuals in the output tells about the difference in predicted values and the actual values. The negative median suggests that the data might be slightly right skewed. The model explained about 8.6% of variation in the distance to syringe programs. This model was significantly better than the baseline model [F(2, 497) = 24.73]. metro variable if statistically significant predictor than the other one(b = 0.84; t = 6.94; p < .001). Nonmetro counties are 0.84 miles farther than metro counties to the nearest syringe exchange in the sample 
+
+```{r}
+## producing the confidence intervals
+
+confint(dist.by.rx.met)
+```
+INTERPRETATION: The 95% confidence interval for the coefficient suggested that a 1% increase in opioid prescription per 100 people was associated with a 0.059 mile to 0.000624-mile increase in distance to the nearest syringe program.Also, The 95% confidence interval for the coefficient suggested that a 1% increase in metro in a county was associated with a 0.60- to 1.08-mile increase in distance to the nearest syringe program.
+
+-----------------------------------------------------------------------------------------
+
+7) Compare the larger and smaller models using the Partial-F test (Achievement 7). 
+  – 1 point 
+
+H0:The larger model is no better than the smaller model at explaining the outcome.
+HA:The larger model is better than the smaller model at explaining the outcome.
+
+```{r}
+## conducting partial F-tests for both the models
+
+anova(object = dist.by.rx, dist.by.rx.met)
+```
+
+-----------------------------------------------------------------------------------------
+8) Interpret and report the results of the Partial-F test (Achievement 7). – 1point 
+
+INTERPRETATION: The F value is 48.262 and the p-value is 1.174e-11 i.i., p< 0.05. So we reject the null hypothesis, and conclude that that the larger model is better than the smaller.
+
+-----------------------------------------------------------------------------------------
+9) Check the distribution of the opioid prescription variable. – 1 point 
+
+
+```{r}
+## plotting histogram for opioid prescriptions for 100 people
+
+ssp.data %>%
+ggplot(aes(x = opioid_RxRate)) +
+geom_histogram(fill = "#7463AC", color = "white", bins = 30) +
+theme_minimal() +
+labs(x = "opioid prescription per 100 people",
+     y = "frequency")
+```
+INTERPRETATION: The histogram appears slightly right skewed without any transformaition
+
+-----------------------------------------------------------------------------------------
+10) Try at least three transformations to transfer the opioid prescription variable 
+    to a more normally distributed variable; choose the transformation that works the 
+    best to normalize the variable (Achievement 7). – 1 point 
+
+
+```{r}
+## plotting histograms of transformed variables
+# cube root
+cube.root.dist <- ssp.data %>%
+ggplot(aes(x = (opioid_RxRate)^(1/3))) +
+geom_histogram(fill = "#7463AC", col = "white", bins = 30) +
+labs(x = "Cube root of opioid prescription per 100 people", y = "Number of counties") +
+theme_minimal()
+
+# square root
+sq.root.dist <- ssp.data %>%
+ggplot(aes(x = sqrt(x = opioid_RxRate))) +
+geom_histogram(fill = "#7463AC", col = "white", bins = 30) +
+labs(x = "Square root of opioid prescription per 100 people", y = "")+
+theme_minimal()
+
+# log
+log.dist <- ssp.data %>%
+ggplot(aes(x = log(x = opioid_RxRate))) +
+geom_histogram(fill = "#7463AC", col = "white", bins = 30) +
+labs(x = "Log of opioid prescription per 100 people", y = "")+
+theme_minimal()
+
+# view options for transformation
+gridExtra::grid.arrange(cube.root.dist, sq.root.dist, log.dist)
+```
+INTERPRETATION: square root transformation of opioid_RxRate seems to produce normal distribution. Remaining are left skewed.
+
+-----------------------------------------------------------------------------------------
+11)  Create  a  model  with  percent  uninsured  as  the  predictor  variable  and  the  
+     distance to syringe program variable transformed using a cube root transformation 
+     as the outcome variable (Achievements 3 and 7). – 1 point 
+
+```{r}
+## producing linear regression model with percent  uninsured as the predictor variable and the distance to syringe program variable transformed using a cube root
+
+dist.by.pct <- lm(formula = (dist_SSP)^(1/3) ~ pctunins,
+                  data = dist.ssp,
+                  na.action = na.exclude)
+```
+
+-----------------------------------------------------------------------------------------
+12) Check model assumptions – 1 point
+
+* checking the independent variables assumption:
+INTERPRETATION: Since, the data is collected from the counties in same state, the variables may not be independent 
+
+* checking the continuous variables assumption:
+INTERPREATATION:since we are considering the distance to a syringe program is measured in miles, the continuous assumption is met
+
+* checking the linearity assumption:
+```{r}
+## plotting scatter plot
+
+ssp.data %>%
+  ggplot(aes(x = pctunins, y = dist_SSP)) +
+  geom_point(aes(size = "County"), color = "#7463AC", alpha = .6) +
+  geom_smooth(aes(linetype = "Linear fit line"), method = "lm",
+      se = FALSE, color = "gray60") +
+  geom_smooth(aes(color = "Loess curve"), se = FALSE) +
+theme_minimal() +
+labs(x = "percent uninsured", y = "Miles to syringe program") +
+scale_size_manual(values = 2, name = "") +
+scale_linetype_manual(values = 1, name = "")
+```
+INTERPRETATION: Loess curve was not linear, so this assumption is not met.
+
+
+* checking the homoscedasticity assumption
+```{r}
+# testing for equal variance
+const.var.test1 <- lmtest::bptest(formula = dist.by.pct)
+const.var.test1
+```
+INTERPRETATION: Since the p-value is 0.1215(p>0.05), we accept the null hypothesis of equal variance. So, the homoscedasticity assumption is met. 
+
+* checking the independence of residuals assumption
+```{r}
+## conducting the durbin watson test
+
+lmtest::dwtest(formula = dist.by.pct)
+```
+INTERPRETATION: The D-W statistic is near 2 and the p-value is greater than 0.05(p=0.63), so we conclude that the null hypothesis is retained.Hence,this assumption is met.
+
+-----------------------------------------------------------------------------------------
+13) Interpret the model results (Achievements 4 and 7). – 1 point 
+ 
+
+```{r}
+## checking the summary
+
+summary(dist.by.pct)
+```
+INTERPRETATION: the residuals in the output tells about the difference in predicted values and the actual values. The negative median suggests that the data might be slightly right skewed. The model explained about 13.4% % of variation in the distance to syringe programs. the baseline model  has [F(2, 497) = 78.67], and suggests that the percent uninsured is significant predictor (b = 0.104; t = 8.869; p < .001). 
+
+
+#########################################################################################
