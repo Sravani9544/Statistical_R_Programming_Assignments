@@ -1,0 +1,518 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+# Project name : correlation analysis of variables
+
+# Project purpose : performing the Correlation test
+
+# Code author name : Mahankali Sravani
+
+# Date last edited : 4/17/2022
+
+# Location of data used : St.Louis, MO
+
+#########################################################################################
+
+INSTALLING ALL THE NEEDED PACKAGES
+
+```{r}
+install.packages("lmtest", dependencies = TRUE)
+```
+
+```{r}
+install.packages("ppcor", dependencies = TRUE)
+```
+
+```{r}
+packages <- c('tidyverse','readxl','lmtest','rcompanion','ppcor')
+```
+
+```{r}
+purrr::walk(packages,library,character.only=T)
+```
+
+```{r}
+library(tableone)
+```
+
+-----------------------------------------------------------------------------------------
+1) FIRST QUESTION:
+   Import the water.educ data frame as shown in this chapter. – 0.6 points 
+
+
+```{r}
+## reading the data
+
+water.educ <- read.csv(file= "water_educ_2015_who_unesco_ch8.csv")
+```
+
+```{r}
+summary(object = water.educ)
+```
+
+-----------------------------------------------------------------------------------------
+2) SECOND QUESTION:
+   Make a table of descriptive statistics for all the variables in the data frame except 
+   for country. Be sure to use appropriate statistics for each variable. – 0.6 points 
+
+
+PLOTTING THE HISTOGRAM FOR EVERY NUMERIC VARIABLE
+
+```{r}
+## plotting the histogram for female.in.school variable
+
+water.educ %>%
+      drop_na(female.in.school) %>%
+      ggplot(aes(x = female.in.school)) +
+      geom_histogram(fill = "#7463AC", col = "white",bins = 30) +
+      theme_minimal() +
+      labs(x = "Percent of females in school",
+           y = "Number of countries")
+```
+INTERPRETATION: the percent of females in school is not a normal distribution and is left skewed.
+
+
+
+```{r}
+## plotting the histogram for med.age variable
+
+water.educ %>%
+      drop_na(med.age) %>%
+      drop_na(perc.basic2015water) %>%
+      ggplot(aes(x = med.age)) +
+      geom_histogram(fill = "orange", col = "white",bins = 30) +
+      theme_minimal() +
+      labs(x = "median age",
+           y = "Number of countries")
+```
+INTERPRETATION: the median age variable is not a normal distribution.
+
+
+```{r}
+## plotting the histogram for perc.basic2015sani variable
+
+water.educ %>%
+      drop_na(perc.basic2015sani) %>%
+      ggplot(aes(x = perc.basic2015sani)) +
+      geom_histogram(fill = "BLUE", col = "white",bins = 30) +
+      theme_minimal() +
+      labs(x = "percent of basic sanitation 2015",
+           y = "Number of countries")
+```
+INTERPRETATION: the percent of basic sanitation variable is not a normal distribution.It is left skewed
+
+
+```{r}
+## plotting the histogram for perc.safe2015sani variable
+
+water.educ %>%
+      drop_na(perc.safe2015sani) %>%
+      ggplot(aes(x = perc.safe2015sani)) +
+      geom_histogram(fill = "red", col = "white",bins = 30) +
+      theme_minimal() +
+      labs(x = "percent of safe sanitation 2015",
+           y = "Number of countries")
+```
+INTERPRETATION: the percent of basic sanitation variable is not a normal distribution.
+
+
+```{r}
+## plotting the histogram for perc.basic2015water variable
+
+water.educ %>%
+      drop_na(perc.basic2015water) %>%
+      ggplot(aes(x = perc.basic2015water)) +
+      geom_histogram(fill = "green", col = "white",bins = 30) +
+      theme_minimal() +
+      labs(x = "percent of basic water 2015",
+           y = "Number of countries")
+```
+INTERPRETATION: the percent of basic water variable is not a normal distribution.It is left skewed
+
+```{r}
+## plotting the histogram for perc.safe2015water variable
+
+water.educ %>%
+      drop_na(perc.safe2015water) %>%
+      ggplot(aes(x = perc.safe2015water)) +
+      geom_histogram(fill = "purple", col = "white",bins = 30) +
+      theme_minimal() +
+      labs(x = "percent of safe water 2015",
+           y = "Number of countries")
+```
+INTERPRETATION: the percent of safe water variable is not a normal distribution.It is left skewed
+
+
+```{r}
+## plotting the histogram for perc.in.school variable
+
+water.educ %>%
+      drop_na(perc.in.school) %>%
+      ggplot(aes(x = perc.in.school)) +
+      geom_histogram(fill = "grey", col = "white",bins = 30) +
+      theme_minimal() +
+      labs(x = "percent of people in school",
+           y = "Number of countries")
+```
+INTERPRETATION: the percent of people in school variable is not a normal distribution.It is left skewed
+
+
+```{r}
+## plotting the histogram for male.in.school variable
+
+water.educ %>%
+      drop_na(male.in.school) %>%
+      ggplot(aes(x = male.in.school)) +
+      geom_histogram(fill = "yellow", col = "white",bins = 30) +
+      theme_minimal() +
+      labs(x = "percent of males in school",
+           y = "Number of countries")
+```
+INTERPRETATION: the percent of males in school variable is not a normal distribution.It is left skewed
+
+FINAL INTERPRETATTION FROM GRAPHS: Since all the variables are not in normal distribution we use median to compute descriptive statistics
+
+CREATING THE DESCRIPTIVE STATISTICS TABLE
+```{r}
+## creating the list of variables
+
+Variables <- c('male.in.school', 'female.in.school','perc.in.school','perc.basic2015sani','perc.safe2015sani','perc.basic2015water','perc.safe2015water','med.age','perc.1dollar')
+
+## creating the table using non-normal condition for only continuous variable
+
+water.table <- CreateTableOne(data = water.educ)
+print(x = water.table$ContTable, nonnormal = Variables)
+
+```
+
+-----------------------------------------------------------------------------------------
+3) THIRD QUESTION
+   Use a graph to examine the relationship between male.in.school and female.in.school      (Achievement 1). – 0.6 points 
+
+```{r}
+## plotting a graph to examine the relationship between male.in.school and female.in.school
+
+
+water.educ %>%
+    ggplot(aes(y = female.in.school/100, x = male.in.school/100)) +
+    geom_point(aes(color = "Country"), size = 2, alpha = .6) +
+    theme_minimal() +
+    labs(y = "Percent of females in school",
+         x = "Percent of males in schools") +
+          scale_color_manual(values = "#7463AC", name = "") +
+          scale_x_continuous(labels = scales::percent) +
+          scale_y_continuous(labels = scales::percent)
+```
+INTERPRETATION: the percent of males and females are positively correlated
+
+-----------------------------------------------------------------------------------------
+4) FOURTH QUESTION
+   Use a graph to examine the relationship between male.in.school and perc.basic2015water    (Achievement 1). – 0.6 points 
+
+```{r}
+## plotting a graph to examine the relationship between male.in.school and  perc.basic2015water
+
+water.educ %>%
+    ggplot(aes(y = male.in.school/100, x = perc.basic2015water/100)) +
+    geom_point(aes(color = "Country"), size = 2, alpha = .6) +
+    theme_minimal() +
+    labs(y = "Percent of males in school",
+         x = "Percent with basic water access") +
+          scale_color_manual(values = "#7463AC", name = "") +
+          scale_x_continuous(labels = scales::percent) +
+          scale_y_continuous(labels = scales::percent)
+```
+INTERPRETATION: the percent of males and percent with basic water access seems to be positively correlated, but maximum males have above 80% basic water access
+
+-----------------------------------------------------------------------------------------
+5) FIFTH QUESTION
+   Based on the graphs from Questions 3 and 4, make predictions about what you would find    when you conduct Pearson correlation analyses for male.in.school and female.in.school    and for male.in.school and perc.basic2015water (Achievement 1). – 0.6 points 
+
+INTERPRETATION: seeing the scatter plots of the above two plots. The females and males in school would be positively correlated, and the males in school and the basic water access are also positively correlated, and most of them have the access to the basic water.
+
+#########################################################################################
+6) SIXTH QUESTION
+   Conduct a Pearson’s r correlation analysis for each pair of variables (* males and 
+   females  in school  * males  in  school  and basic  water).  Interpret  each  r          statistic  in terms of direction, size, and significance (Achievements 2 and 3). – 1     point 
+
+NHST Step 1: Writing the null and alternate hypotheses
+
+ H0: There is no relationship between the male.in.school and female.in.school (r = 0).
+ HA: There is a relationship between the male.in.school and female.in.school (r ≠ 0).
+ 
+```{r}
+## test for correlation coefficient between males and females in school
+cor.test(x = water.educ$male.in.school,
+         y = water.educ$female.in.school)
+```
+INTERPRETATION: p-value was found to be less than p-value < 2.2e-16.Since, the cor(r) is equal to 0.9829(near to 1.0), there is nearly perfectly correlation between male in school and female in school. So we reject the null hypothesis and accept alternate hypothesis i.e., there is a relationship between 2 variables.
+
+
+NHST Step 1: Writing the null and alternate hypotheses
+
+ H0: There is no relationship between the male.in.school and perc.basic2015water (r = 0).
+ HA: There is a relationship between the male.in.school and perc.basic2015water (r ≠ 0).
+ 
+
+```{r}
+## test for correlation coefficient between males in school and percentage of basic water
+cor.test(x = water.educ$perc.basic2015water,
+         y = water.educ$male.in.school)
+```
+
+INTERPRETATION: p-value was found to be less than p-value < 2.2e-16.Since, the cor(r) is equal to 0.791(nearly r = 0.80), there is a strong positive correlation between male in school and percentage of basic water. So we reject the null hypothesis and accept alternate hypothesis i.e., there is a relationship between 2 variables.
+
+-----------------------------------------------------------------------------------------
+7) seventh question
+   Compute and interpret the coefficient of determination for each pair of variables        (Achievement 4). – 1 point 
+
+```{r}
+## Computing and interpreting the coefficient of determination for males and females
+
+females.males <- water.educ %>%
+  summarize(cor.females.males = cor(x = male.in.school,
+                                    y = female.in.school,
+use = "complete"))
+
+females.males
+```
+INTERPRETATION: The Pearson’s product-moment correlation coefficient demonstrated that the percentage of females in school is nearly perfectly positively correlated with the males in school (r = 0.98). It might be predicted that, as the females in school increases the males also increase
+
+
+```{r}
+# exploring the object
+str(object = females.males)
+```
+
+
+```{r}
+## squaring the r value of cor.females.males
+
+r.squared.females <- females.males$cor.females.males^2
+r.squared.females
+```
+INTERPRETATION: It means that the 96% of the males variance is shared by females
+
+```{r}
+## Computing and interpreting the coefficient of determination for males and perc.basic.2015water
+
+males.water <- water.educ %>%
+  summarize(cor.males.water = cor(x = male.in.school,
+                                    y = perc.basic2015water,
+use = "complete"))
+
+males.water
+```
+INTERPRETATION: The Pearson’s product-moment correlation coefficient demonstrated that the percentage of perc.basic2015water is nearly strongly positively correlated with the males in school (r = 0.79). It might be predicted that, as the males in school increases, the perc.basic2015water also increase.
+
+
+```{r}
+# explore the object
+str(object = males.water)
+```
+
+
+```{r}
+## squaring the r value of cor.males.water
+
+r.squared.males <- males.water$cor.males.water^2
+r.squared.males
+```
+INTERPRETATION: It means that the 63.7% of the males variance is shared by perc.basic2015water
+
+-----------------------------------------------------------------------------------------
+8) EIGHTH QUESTION
+Check assumptions for the Pearson’s r for each pair of variables (Achievement 5). – 1 point 
+
+The correlation coefficients rely on several assumptions:
+* Observations are independent.=> The observations are independent 
+* Both variables are continuous.=> the variables are continuous
+* Both variables are normally distributed.=> the variables are not normal
+* The relationship between the two variables is linear (linearity).=> there appears a linear relationship between males and females,also between males and perc.basi2015water
+* The variance is constant with the points distributed equally   around the line (homoscedasticity).
+
+
+```{r}
+# explore plot of female education and males in school
+water.educ %>%
+        ggplot(aes(y = female.in.school/100, x =   male.in.school/100)) +
+geom_smooth(aes(color = "Linear fit line"), method = "lm", se = FALSE) +
+geom_point(aes(size = "Country"), color = "orange", alpha = 0.6)
+theme_minimal() +
+labs(y = "Percent of females in school",
+     x = "Percent of males in school") 
+    
+```
+INTERPRETATION: the variables are related in a linear manner
+
+```{r}
+# exploring plot of males in school and water access
+water.educ %>%
+        ggplot(aes(y = male.in.school/100, x =   perc.basic2015water/100)) +
+geom_smooth(aes(color = "Linear fit line"), method = "lm", se = FALSE) +
+geom_point(aes(size = "Country"), color = "orange", alpha = 0.6)
+theme_minimal() +
+labs(y = "Percent of males in school",
+     x = "Percent with basic water access") 
+    
+```
+INTERPRETATION: the variables are related in a linear manner
+
+
+```{r}
+# testing for homoscedasticity for males and females in school
+
+bp.test <- lmtest::bptest(formula = water.educ$female.in.school ~
+water.educ$male.in.school)
+
+bp.test
+```
+INTERPRETATION: Since the p-value is 0.01(p<0.05), The variance is not constant along the line. So, the assumption of homoscedasticity is not met.
+
+
+```{r}
+# testing for homoscedasticity for perc.basic2015water and males in school
+
+bp.test.male <- lmtest::bptest(formula = water.educ$male.in.school ~
+water.educ$perc.basic2015water)
+
+bp.test.male
+```
+INTERPRETATION: Since the p-value is 0.00024, The variance is not constant along the line. So, the assumption of homoscedasticity is not met.
+-----------------------------------------------------------------------------------------
+9) NINTH QUESTION
+If assumptions are not met for the Pearson’s r, conduct and interpret a Spearman’s correlation analysis, including assumption testing (Achievement 7). – 0.5 points
+
+H0: There is no correlation between the percentage of females in school and the males in school
+HA: There is a correlation between the percentage of females in school and males in school (ρ ≠ 0).
+
+
+```{r}
+# spearman correlation females in school and males in school
+spear.male.female <- cor.test(x = water.educ$male.in.school,
+                            y = water.educ$female.in.school,
+                   method = "spearman")
+spear.male.female
+```
+INTERPRETATION: The p-value is < 2.2e-16 in the output for the Spearman analysis.There was a statistically significant positive correlation between Males and females in school(0.95 and p<0.05). As the males in school increase, the percentage of females in school also increases. we reject null hypothesis
+
+H0: There is no correlation between the percentage of perc.basic2015waterand males in school
+HA: There is a correlation between the percentage of perc.basic2015waterand males in school (ρ ≠ 0).
+
+
+```{r}
+# spearman correlation males in school and water access
+spear.male.water <- cor.test(x = water.educ$perc.basic2015water,
+                            y = water.educ$male.in.school,
+                   method = "spearman")
+spear.male.water
+```
+INTERPRETATION: The p-value is < 2.2e-16 in the output for the Spearman analysis.There was a statistically significant positive correlation between Males and basic water(rho = 0.72 and p<0.05). we reject null hypothesis
+
+-----------------------------------------------------------------------------------------
+10) TENTH QUESTION
+    Conduct the appropriate partial correlation (Pearson or Spearman) examining 
+the relationship between male.in.school and perc.basic2015water accounting for 
+perc.1dollar.  Check  any  assumptions  not  previously  checked  and  interpret  your 
+results accordingly (Achievement 8). – 1 point 
+
+```{r}
+##create a data frame with only males in schoolpoverty and water access
+water.educ.small <- water.educ%>% 
+dplyr::select(male.in.school, perc.basic2015water, perc.1dollar) %>%
+drop_na()
+```
+
+```{r}
+# checking the data
+summary(water.educ.small)
+```
+
+```{r}
+# examiningbivariate correlations
+water.educ.small %>%
+  summarize(corr.male.water = cor(x = perc.basic2015water,
+                                 y = male.in.school),
+    corr.male.pov = cor(x = perc.1dollar, y = male.in.school),
+    corr.water.pov = cor(x = perc.basic2015water,
+                         y = perc.1dollar))
+```
+Interpretation: The three correlations were all strong.
+
+
+  r = –1.0 is perfectly negative
+  r = –.8 is strongly negative
+  r = –.5 is moderately negative
+  r = –.2 is weakly negative
+  r = 0 is no relationship
+  r = .2 is weakly positive
+  r = .5 is moderately positive
+  r = .8 is strongly positive
+  r = 1.0 is perfectly positive
+
+```{r}
+# conducting partial pearson correlation
+educ.water.poverty <- ppcor::pcor(x = water.educ.small, method = "pearson")
+educ.water.poverty
+```
+INTERPRETATION: all the three variables are having weak to moderate relationship
+
+```{r}
+# conducting the partial correlation with spearman
+educ.water.poverty.spear <- ppcor::pcor(x = water.educ.small, method = "spearman")
+educ.water.poverty.spear
+```
+INTERPRETATION: all the three variables are having weak to moderate relationship
+
+
+```{r}
+# check monotonic of plot of females in school and poverty 
+water.educ.small %>%
+ggplot(aes(y = male.in.school/100, x = perc.1dollar/100)) +
+geom_smooth(aes(color = "Linear fit line"), method = "lm", se = FALSE) +
+geom_smooth(aes(color = "Loess curve"), se = FALSE) +
+geom_point(aes(size = "Country"), color = "orange", alpha = .6) +
+theme_minimal() +
+labs(y = "Percent of males in school",
+     x = "Percent living on < $1 per day") +
+scale_x_continuous(labels = scales::percent) +
+scale_y_continuous(labels = scales::percent) +
+scale_color_manual(name="", values = c("gray60", "red")) +
+scale_size_manual(name="", values = 2)
+```
+INTERPRETATION: The analyses did not meet the monotonic assumption for the     poverty variable and Males in school
+
+```{r}
+# check monotonic assumption for water access and poverty 
+water.educ.small %>%
+ggplot(aes(x = perc.1dollar/100, y = perc.basic2015water/100)) +
+geom_smooth(aes(color = "Linear fit line"), method = "lm", se = FALSE) +
+geom_smooth(aes(color = "Loess curve"), se = FALSE) +
+geom_point(aes(size = "Country"), color = "#7463AC", alpha = .6) +
+theme_minimal() +
+labs( x = "Percent living on < $1 per day",
+      y = "Percent with basic water access") +
+scale_x_continuous(labels = scales::percent) +
+scale_y_continuous(labels = scales::percent) +
+scale_color_manual(name = "", values = c("gray60", "deeppink")) +
+scale_size_manual(name = "", values = 2)
+```
+INTERPRETATION: The analyses did not meet the monotonic assumption for the     poverty variable and the basic water access variable.
+
+-----------------------------------------------------------------------------------------
+11)ELEVENTH QUESTION
+Write  a  paragraph  explaining  what  you  found  and  how  it  compares  to  the 
+correlation analyses for females in school and water access. – 0.5 points 
+
+All the variables were moderately or strongly related to other groups indicating that
+The assumptions  were not met, so it is not clear that the partial  correlation from the sample of countries can be generalized  to the population of all countries. The results were  similar for females as well as males . The varibles were not normal and not passing homoscadesticity assumption for both the variables. 
+
+
+
+
+
+
+
+
+
