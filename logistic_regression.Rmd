@@ -1,0 +1,356 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Project name : logistic regression analysis of library usage data
+
+# Project purpose : performing the binary logistic regression 
+
+# Code author name : Mahankali Sravani
+
+# Date last edited : 4/28/2022
+
+# Location of data used : St.Louis, MO
+
+#########################################################################################
+
+## installing the necessary packages
+
+```{r}
+install.packages("odds.n.ends",dependencies=TRUE)
+```
+
+```{r}
+packages <- c('tidyverse','odds.n.ends','lmtest','tableone','car')
+```
+
+```{r}
+purrr::walk(packages,library,character.only=T)
+```
+
+-----------------------------------------------------------------------------------------
+
+## reading the file
+
+```{r}
+libraries <- read.csv(file = "pew_libraries_2016_ch10.csv") 
+```
+
+## selecting the variables and recoding the variables 
+
+```{r}
+libraries.small <- libraries %>% 
+  select(age, sex, par, educ2, reg, libusea) %>%  
+  mutate(registered = factor(x = dplyr::recode(.x = reg, 
+                                      `1` = "certain registered", 
+                                      `2` = "probably registered", 
+                                      `3` = "not registered", 
+                                      `8` = NA_character_, 
+                                      `9` = NA_character_))) %>% 
+  mutate(age = na_if(x = age, y = 98)) %>% 
+  mutate(age = na_if(x = age, y = 99)) %>% 
+  mutate(sex = factor(x = dplyr::recode(.x = sex, 
+                                 `1` = "male", 
+                                 `2` = "female"))) %>% 
+  mutate(parent = factor(x = dplyr::recode(.x = par, 
+                                    `1` = "parent", 
+                                    `2` = "not parent", 
+                                    `8` = NA_character_, 
+                                    `9` = NA_character_))) %>% 
+  mutate(uses.lib = factor(x = dplyr::recode(.x = libusea, 
+                                     `1` = "yes", 
+                                     `2` = "no", 
+                                     `3` = "no", 
+                                     `8` = NA_character_, 
+                                     `9` = NA_character_,)))%>% 
+  mutate(educ = factor(x = if_else(condition = libraries$educ2 < 3, 
+                                  true =  "< HS", 
+                                 false = if_else(condition =libraries$educ2 < 6, 
+                                                 true = "HS to 2-year degree", 
+                                                 false = "Four-year degree or more"))))%>% 
+drop_na() 
+```
+
+-----------------------------------------------------------------------------------------
+1) Use CreateTableOne() to create a table showing the bivariate relationships between       library use and all of the variables in the data frame (Achievement 1). - 0.5 points 
+
+## creating the descriptive statistics of the variables using strata to show the            bivariate relationships between library use and all of the variables in the data frame
+
+```{r}
+table.desc <- CreateTableOne(data = libraries.small,
+                            strata = "uses.lib",
+                            vars = c("age", "sex", "parent", "reg", "educ"))
+```
+
+```{r}
+print(table.desc,nonnormal = "age", showAllLevels = TRUE)
+```
+INTERPRETATION: 
+* Since the p values of all the variables are less than 0.05, All the variables are        statistically significant.
+* Among all the people, 55.9% of the library users were females and 44.1% of males
+* 43.3% people whose education level is HS to 2-year degree were using library.
+* The library users were younger, with a lower median age (med = 49 years) compared to     library nonusers (med = 53 years).
+
+-----------------------------------------------------------------------------------------
+2) Write out the statistical form of the model explaining library use by age, sex,      
+   parental status, and education (Achievement 2). - 0.5 points 
+
+* The statistical model for the logistic model in Equation
+                  p(y)=1/1+e−(b0+b1x1+b2x2)
+  where
+      y : the binary outcome variable (e.g., library use)
+      p(y) : the probability of the outcome (e.g., probability of library use)
+      b0 : the y-intercept
+      x1 and x2 : predictors of the outcome (e.g., age, sex, voter registration,                            education)
+      b1 and b2 : coefficients for x1 and x2
+
+* The overall final equation looks like
+          p(uses.lib)=1/1+e^(−(b0+b1age+b2sex+b3voter_registration+b4education))
+    where 
+      y : the name of the outcome variable, uses.lib
+      x : the name of the predictor variable, age, sex, voter registration,                            education, public library usage 
+
+-----------------------------------------------------------------------------------------
+3) Use glm() to run the model corresponding to the formula you wrote out and                odds.n.ends() to get model significance, model fit, and odds ratios with             
+   confidence intervals (Achievement 5). - 0.5 points 
+
+## checking the order of the outcome variable categories
+
+```{r}
+levels(as.factor(x = libraries.small$uses.lib))
+```
+Interpretation:
+* The first category is “no” and the second is “yes.” 
+* This means the model will be predicting the “yes” category of library use.
+
+## making no, the reference group
+
+```{r}
+libraries.small <- libraries.small %>%
+mutate(uses.lib = relevel(x = as.factor(uses.lib), ref = "no"))
+```
+
+## check the re-ordering
+
+```{r}
+levels(x = libraries.small$uses.lib)
+```
+
+## estimating the library use model and print results
+
+```{r}
+lib.model.small <- glm(formula = uses.lib ~ age+sex+parent+reg+educ,
+                  data = libraries.small,
+                  na.action = na.exclude,
+                  family = binomial("logit"))
+```
+
+```{r}
+summary(object = lib.model.small)
+```
+
+INTERPRETATION: 
+* The output from glm() contains information about the significance of the predictors,     but is missing several pieces of information for reporting results, such as the odds     ratios, model significance, and model fit.
+* We use the odds.n.ends() function from the odds.n.ends package to get this information.
+
+## getting model fit, model significance, odds ratios
+
+```{r}
+odds.n.ends(mod = lib.model.small)
+```
+INTERPRETATION: 
+* The chi-squared test statistic for a logistic regression model with age, sex,            education, registered voter, parent predicting library use had a p-value of less         than.001. The null hypothesis is therefore rejected in favor of the alternate            hypothesis that the model is better than the baseline at predicting library use. A       logistic regression model including age was statistically significantly better than a    null model at predicting library use [χ2(1) = 99.115; p = <.001].
+* The odds of library use decrease by 1% for every 1-year increase in age.
+* The odds ratio for age is .99 with a 95% CI of .709–.992. The confidence interval shows   the range where the odds ratio likely is in the population. Because the confidence       interval does not include 1, this indicates that the odds ratio is statistically         significantly different from 1. 
+* The odds ratio for sex(male) is .51 with a 95% CI of .414–.627. The confidence interval   shows the range where the odds ratio likely is in the population. Because the            confidence interval does not include 1, this indicates that the odds ratio is            statistically significantly different from 1.
+* The odds ratio for reg is .51 with a 95% CI of .709–.94. The confidence interval         shows the range where the odds ratio likely is in the population. Because the            confidence interval does not include 1, this indicates that the odds ratio is            statistically significantly different from 1.
+
+-----------------------------------------------------------------------------------------
+4) Discuss model significance and model fit (Achievement 6). - 0.5 points 
+
+
+```{r}
+countR2<-function(m) mean(m$y==round(m$fitted.values))
+```
+
+```{r}
+countR2(lib.model.small)
+```
+Interpretation:
+* There were 59.5% more correct predictions by the model than by the baseline observing    the value in the summary of the model.
+* There were 53.3% more correct predictions by the model than by the baseline              (Adjusted Count R2 = .533).
+
+-----------------------------------------------------------------------------------------
+5) Interpret the model odds ratios and confidence intervals (Achievement 6). - 0.5 points 
+INTERPRETATION: 
+* If the odds ratio is greater than 1 and the confidence interval does not include 1, the   odds ratio suggests a statistically significant increase in the odds of the outcome.
+  so, age, sex(male), and reg are statistically significant
+* There were three significant predictors with odds ratios greater than 1: 
+  People with a four-year degree or more education had 1.90 times higher odds of           library use compared to people with less than a high school education (OR = 1.90;   95%   CI: 1.30–2.75), HS to two-year degree or more education had 1.11 times higher odds of    library use compared to people with less than a high school education (OR = 1.11;   95%   CI: 0.77–1.61), and people who are parent had 1.30 times higher odds of library use      compared to non-parents (OR = 1.30;   95% CI: 1.01–1.67).
+
+-----------------------------------------------------------------------------------------
+6) Check assumptions. Interpret what you find, including    examining any 
+   observations that appear problematic during diagnostics (Achievement 7). - 0.5 points 
+ 
+There are three assumptions for logistic regression: 
+* independence of observations, 
+* linearity, 
+* no perfect multi-collinearity. 
+
+## Assumption1: independence of observations
+
+INTERPRETATION: As the Pew Research Center conducted a phone survey where they selected a single person in a randomly selected household. This data collection strategy is likely to result in independent observations. 
+
+Hence, The assumption is met
+
+## Assumption2: linearity
+
+```{r}
+# make a variable of the log-odds of the predicted values
+logit.use <- log(x = lib.model.small$fitted.values/(1-lib.model.small$fitted.values))
+```
+
+```{r}
+# make a small data frame with the log-odds variable and the age predictor
+linearity.age.data <- data.frame(logit.use, age = lib.model.small$model$age)
+```
+
+```{r}
+# create a plot 
+linearity.age.data %>%
+ggplot(aes(x = age, y = logit.use))+
+geom_point(aes(size = "Observation"), color = "gray60", alpha = .6) +
+geom_smooth(se = FALSE, aes(color = "Loess curve")) +
+geom_smooth(method = lm, se = FALSE, aes(color = "linear")) +
+theme_minimal() +
+labs(x = "Age in years",
+     y = "Log-odds of library use predicted probability") +
+scale_color_manual(name = "Type of fit line",
+                   values = c("dodgerblue2", "deeppink")) +
+scale_size_manual(values = 1.5, name = "")
+```
+Interpretation: The graph shows the Loess curve close to the linear fit line with the exception of the youngest ages. 
+Hence, the assumption is not met.
+
+## Assumption 3: No perfect multicollinearity
+
+```{r}
+# compute GVIF
+car::vif(mod = lib.model.small)
+```
+Interpretation: None of the values in the right-hand column have a value of 2.5 or higher, so there is no discernable problem with multicollinearity.
+
+Overall, the assumption checking revealed a possible problem with age as a          predictor, mostly at the youngest ages. 
+* The other assumptions were met. 
+* It might be useful to restrict the age variable to adults or to transform the age        variable.
+
+
+Model diagnostics 
+
+## Using standardized residuals to find outliers
+
+```{r}
+## getting standardized residuals and adding to data frame
+
+libraries.small <- libraries.small %>%
+mutate(standardized = rstandard(model = lib.model.small))
+```
+
+```{r}
+## checking the residuals for large values > 2
+
+libraries.small %>%
+drop_na(standardized) %>%
+summarize(max.resid = max(abs(x = standardized)))
+```
+Interpretation:The maximum absolute value of any standardized residual was less than 1.96, so the standardized residuals did not reveal any outliers.
+
+## Using df-betas to find influential values
+
+```{r}
+## getting influence statistics
+
+influence.lib.mod <- influence.measures(model = lib.model.small)
+```
+
+```{r}
+## summarizing data frame with dfbetas, cooks, leverage
+
+summary(object = influence.lib.mod$infmat)
+```
+Interpretation: None of the variables had df-betas larger than 2, so, by the df-beta measure, there were no influential observations.
+
+## Using Cook’s Distance to find influential values
+
+```{r}
+## saving the data frame
+
+influence.lib <- data.frame(influence.lib.mod$infmat)
+```
+
+```{r}
+## observations with high Cook’s D
+
+influence.lib %>%
+    filter(cook.d > 4/1427)
+```
+Interpretation: Counting the rows in the output, it looked like there were six observations with Cook’s D values that indicated some possible influence.
+
+## Using leverage to find influential values
+
+```{r}
+## observations with high Leverage
+
+influence.lib %>%
+  filter(hat > 2*13/1427)
+```
+Interpretation: No observation had high leverage. 
+
+```{r}
+## observations with high leverage and Cook’s D
+
+influence.lib %>%
+filter(hat > 2*13/1427 & cook.d > 4/1427)
+```
+INTERPRETATION: No observation was problematic
+
+```{r}
+## making row names as a variable
+
+influence.lib <- influence.lib %>%
+                  rownames_to_column()
+```
+
+```{r}
+## merging data frame with diagnostic stats
+
+libraries.small.diag <- libraries.small %>%
+rownames_to_column() %>%
+merge(x = influence.lib, by = 'rowname') %>%
+mutate(pred.prob = predict(object = lib.model.small, type = "response"))
+```
+
+```{r}
+## finding mean predicted probability
+
+libraries.small.diag %>%
+summarize(mean.predicted = mean(x = pred.prob, na.rm = TRUE))
+```
+Interpretation:The mean predicted probability was .49
+
+```{r}
+## reviewing influential observations
+
+libraries.small.diag %>%
+filter(hat > 2*13/1427 & cook.d > 4/1427) %>%
+select(rowname, age, sex, educ, parent, uses.lib,hat, cook.d, pred.prob)
+```
+Interpretation:The observations did not seem unusual or like data entry errors. Because there do not appear to be any data entry errors or strange values, the observations should stay in the data frame.
+
+REPORT: The chi-squared test statistic for a logistic regression model with age, sex,   education, registered voter, parent predicting library use had a p-value of less than.001. The null hypothesis is therefore rejected in favor of the alternate            hypothesis that the model is better than the baseline at predicting library use.A     logistic regression model including age was statistically significantly better           than a null model at predicting library use [χ2(1) = 99.115; p = <.001].The odds         of library use decrease by 1% for every 1-year increase in age. The odds ratio           for age is .99 with a 95% CI of .709–.992. The confidence interval shows the             range where the odds ratio likely is in the population. Because the confidence           interval does not include 1, this indicates that the odds ratio is statistically         significantly different from 1. The odds ratio for sex(male) is .51 with a 95% CI of .414–.627. The confidence interval   shows the range where the odds ratio likely is in the population. Because the confidence interval does not include 1, this indicates that the odds ratio is statistically significantly different from 1. The odds ratio for reg is .51 with a 95% CI of .709–.94. The confidence interval shows the range where the odds ratio likely is in the population. Because the confidence interval does not include 1, this indicates that the odds ratio is statistically significantly different from 1.
+If the odds ratio is greater than 1 and the confidence interval does not include 1, the odds ratio suggests a statistically significant increase in the odds of the outcome.
+so, age, sex(male), and reg are statistically significant. There were three significant predictors with odds ratios greater than 1.People with a four-year degree or more education had 1.90 times higher odds of library use compared to people with less than a high school education (OR = 1.90; 95% CI: 1.30–2.75), HS to two-year degree or more education had 1.11 times higher odds of library use compared to people with less than a high school education (OR = 1.11;95% CI: 0.77–1.61), and people who are parent had 1.30 times higher odds of library use compared to non-parents (OR = 1.30;   95% CI:1.01–1.67). Assumption checking revealed a possible problem with the linearity of the age predictor, especially at the youngest ages. The other assumptions were met. Diagnostics found no problematic outlying or influential observations.
+
+#########################################################################################
+
